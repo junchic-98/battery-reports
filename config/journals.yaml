@@ -89,6 +89,10 @@ journals:
     url: "https://rss.sciencedirect.com/publication/science/22112855"
     enabled: true
 
+  - name: "Journal of Energy Chemistry"
+    url: "https://rss.sciencedirect.com/publication/science/20954956"
+    enabled: true
+
 
   # ── Wiley ──────────────────────────────────────────────────────────────────
   # Pattern: https://onlinelibrary.wiley.com/action/showFeed?jc=[ISSN-no-hyphens]&type=etoc&feed=rss
