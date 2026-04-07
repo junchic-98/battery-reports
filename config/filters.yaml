@@ -1,0 +1,29 @@
+exclusion:
+  # Papers whose titles contain any of these strings (case-insensitive) will be skipped
+  exclude_if_title_contains:
+    - "book review"
+    - "editorial"
+    - "correction"
+    - "erratum"
+    - "retraction"
+    - "in memoriam"
+    - "acknowledgment"
+    - "acknowledgement"
+    - "table of contents"
+    - "front matter"
+    - "back matter"
+    - "issue information"
+    - "masthead"
+
+  # Papers older than this many days will be skipped
+  max_age_days: 14
+
+  # Papers scoring strictly below this threshold are dropped from the report.
+  # Set to 0 to disable. Recommended: 0.1 (removes score=0 off-topic papers
+  # from broad journals like Advanced Materials, ACS AMI, etc.)
+  minimum_score: 0.1
+
+  # Maximum number of papers to include in the report (top N by score).
+  # Set to 0 to disable. Recommended: 20 (realistic reading limit per day).
+  top_n: 30
+

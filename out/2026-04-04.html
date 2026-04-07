@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battery Paper Report — 2026-04-04</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a2e;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 2rem 2rem 1.75rem;
+      border-bottom: 4px solid #4f46e5;
+    }
+    .hi { max-width: 900px; margin: 0 auto; }
+    header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .3rem; }
+    header .sub { font-size: .9rem; color: #a0aec0; margin-bottom: .9rem; }
+    .pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .pill {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 4px;
+      padding: .2rem .65rem;
+      font-size: .8rem;
+      color: #e2e8f0;
+    }
+    .pill strong { color: #fff; }
+
+    /* ── Layout ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; display: grid; grid-template-columns: 1fr 180px; gap: 1.75rem; align-items: start; }
+    @media(max-width: 700px) { .page { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* ── Sidebar ── */
+    .sidebar { position: sticky; top: 1rem; }
+    .sidebar-card { background: #fff; border: 1px solid #dde1e7; border-radius: 6px; padding: .9rem; }
+    .sidebar-title { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b7280; margin-bottom: .6rem; }
+    .sj { display: flex; justify-content: space-between; padding: .22rem 0; border-bottom: 1px solid #f0f0f0; font-size: .75rem; color: #374151; }
+    .sj:last-child { border-bottom: none; }
+    .sj span { color: #9ca3af; font-weight: 600; }
+
+    /* ── Section heading ── */
+    .section-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: #6b7280; margin-bottom: 1rem; display: flex; align-items: center; gap: .6rem;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: #dde1e7; }
+
+    /* ── Paper list ── */
+    .list { display: flex; flex-direction: column; gap: .75rem; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #dde1e7;
+      border-left: 5px solid #dde1e7;
+      border-radius: 6px;
+      padding: 1.1rem 1.1rem 1rem;
+    }
+    .card.high   { border-left-color: #16a34a; }
+    .card.medium { border-left-color: #d97706; }
+    .card.low    { border-left-color: #9ca3af; }
+
+    .card-top { display: flex; align-items: flex-start; gap: .8rem; }
+
+    .score-badge {
+      flex-shrink: 0;
+      min-width: 2.8rem; height: 2.8rem;
+      border-radius: 5px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-weight: 700; line-height: 1;
+    }
+    .score-badge .v { font-size: 1.05rem; }
+    .score-badge .l { font-size: .5rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; margin-top: 1px; }
+    .high   .score-badge { background: #dcfce7; color: #15803d; }
+    .medium .score-badge { background: #fef3c7; color: #b45309; }
+    .low    .score-badge { background: #f3f4f6; color: #6b7280; }
+
+    .card-body { flex: 1; min-width: 0; }
+    .rank { font-size: .68rem; font-weight: 700; color: #9ca3af; margin-bottom: .25rem; }
+
+    .card-title a {
+      font-size: 1rem; font-weight: 600; color: #111827;
+      text-decoration: none; line-height: 1.45;
+    }
+    .card-title a:hover { color: #4f46e5; text-decoration: underline; }
+
+    .card-meta { display: flex; flex-wrap: wrap; gap: .3rem .8rem; font-size: .75rem; color: #6b7280; margin: .4rem 0 .55rem; }
+    .card-meta a { color: #4f46e5; text-decoration: none; }
+    .card-meta a:hover { text-decoration: underline; }
+    .jtag {
+      background: #eef2ff; color: #4338ca;
+      border: 1px solid #c7d2fe; border-radius: 3px;
+      padding: .1rem .4rem; font-size: .7rem; font-weight: 600;
+    }
+
+    .abstract { font-size: .83rem; color: #374151; line-height: 1.65; }
+
+    /* ── Footer ── */
+    footer { text-align: center; padding: 1.1rem; font-size: .72rem; color: #9ca3af; border-top: 1px solid #dde1e7; }
+
+    .empty { text-align: center; padding: 4rem 2rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hi">
+    <h1>Battery Paper Report</h1>
+    <p class="sub">Saturday, April 04, 2026 &nbsp;·&nbsp; Sorted by relevance score</p>
+    <div class="pills">
+      <span class="pill"><strong>20</strong>&nbsp;papers</span>
+      <span class="pill"><strong>12</strong>&nbsp;journals</span>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <main>
+    
+    <div class="section-title">All Papers — Ranked by Relevance</div>
+    <div class="list">
+      
+      
+      
+      <article class="card medium">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">3.1</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#1</div>
+            <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/aenm.202600010?af=R" target="_blank" rel="noopener">Investigation of Moisture‐Induced Degradation Mechanisms and a Reviving Strategy for Sulfide‐Based Solid Electrolytes in All‐Solid‐State Composite Cathode</a></div>
+            <div class="card-meta">
+              <span class="jtag">Advanced Energy Materials</span>
+              <span>Yujeong Hwang, 
+Hwiho Kim, 
+Sungjae Seo, 
+Mingyuan Ge, 
+Yongjun Jang, 
+Jongwoo Lim</span>
+              <span>Mar 26, 2026</span>
+              <span><a href="https://doi.org/10.1002/aenm.202600010" target="_blank">10.1002/aenm.202600010</a></span>
+            </div>
+            
+            <p class="abstract">Advanced Energy Materials, EarlyView.</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#2</div>
+            <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75195?af=R" target="_blank" rel="noopener">High Pressure Densification Investigation of Li3PS4 and Li6PS5Cl Solid Electrolytes using Combine X‐Ray Diffraction, X‐Ray Absorption Tomography and Ionic Measurement</a></div>
+            <div class="card-meta">
+              <span class="jtag">Advanced Functional Materials</span>
+              <span>Oskar Thompson, 
+Ove Korjus, 
+Adrien Fauchier‐Magnan, 
+Clément Albin, 
+Sergio F. Mayer, 
+Emmanuelle Suard, 
+Thomas Hansen, 
+Laura Henry, 
+Nicolas Guignot, 
+Vittoria Pischedda, 
+Sylvie Le Floch, 
+Claire Villevieille</span>
+              <span>Apr 01, 2026</span>
+              <span><a href="https://doi.org/10.1002/adfm.75195" target="_blank">10.1002/adfm.75195</a></span>
+            </div>
+            
+            <p class="abstract">Advanced Functional Materials, EarlyView.</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.0</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#3</div>
+            <div class="card-title"><a href="http://dx.doi.org/10.1021/jacs.5c23072" target="_blank" rel="noopener">[ASAP] Staged Lithiation/Delithiation of Silicon Anode in All-Solid-State Batteries Revealed by High-Stack-Pressure Operando NMR Spectroscopy</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of the American Chemical Society</span>
+              <span>Ying Jiang, Shouquan Yao, Hui Feng, Jiaxing Lv, Fushan Geng, Yu Jiang, Ming Shen, and Bingwen Hu</span>
+              <span>Apr 01, 2026</span>
+              <span><a href="https://doi.org/10.1021/jacs.5c23072" target="_blank">10.1021/jacs.5c23072</a></span>
+            </div>
+            
+            <p class="abstract">Journal of the American Chemical Society DOI: 10.1021/jacs.5c23072</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#4</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2542435125004209?dgcid=rss_sd_all" target="_blank" rel="noopener">“Active material-free” design to overcome mass-transport limitations for high-energy-density all-solid-state Li-S batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Joule</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 18 February 2026 Source: Joule, Volume 10, Issue 2 Author(s): Zhengcheng Gu, Shengfu Wei, Xing Zhang, Weigang Ma</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#5</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726001753?dgcid=rss_sd_all" target="_blank" rel="noopener">Sodium halide solid electrolytes for all-solid-state sodium batteries: advances, challenges, strategies, and prospects</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: May 2026 Source: Energy Storage Materials, Volume 88 Author(s): Bing Yan, Hyokyeong Kang, Rongkang Zhou, Heesung Shin, Yameng Fan, Fanqin Yue, Busheng Zhang, Biwei Xiao, Jang-Yeon Hwang, Dan Zhou</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#6</div>
+            <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/aenm.202506291?af=R" target="_blank" rel="noopener">A Stable and Reliable Li–In Alloy Counter Electrode for Sulfide‐Based All‐Solid‐State Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Advanced Energy Materials</span>
+              <span>Gengzhong Lin, 
+Yicheng Deng, 
+Guo Tang, 
+Hui Li, 
+Yuliang Cao, 
+Yongjin Fang, 
+Xinping Ai</span>
+              <span>Apr 03, 2026</span>
+              <span><a href="https://doi.org/10.1002/aenm.202506291" target="_blank">10.1002/aenm.202506291</a></span>
+            </div>
+            
+            <p class="abstract">Advanced Energy Materials, Volume 16, Issue 13, 1 April 2026.</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#7</div>
+            <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/aenm.70855?af=R" target="_blank" rel="noopener">Highly Electronegative Anions Doping Effects in Sulfide‐Based Electrolytes: Toward High‐Voltage All‐Solid‐State Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Advanced Energy Materials</span>
+              <span>Yujun Li, 
+Wei Hao, 
+Xinyang Yue, 
+Tinghu Liu, 
+Tong Duan, 
+Jiangkai Kong, 
+Siyuan Shen, 
+Junjian Zhao, 
+Xiaoya He, 
+Yakun Liu, 
+Zheng Liang, 
+Song Du</span>
+              <span>Mar 25, 2026</span>
+              <span><a href="https://doi.org/10.1002/aenm.70855" target="_blank">10.1002/aenm.70855</a></span>
+            </div>
+            
+            <p class="abstract">Advanced Energy Materials, EarlyView.</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#8</div>
+            <div class="card-title"><a href="https://iopscience.iop.org/article/10.1149/1945-7111/ae568e" target="_blank" rel="noopener">Impact of Lithium Diffusivity in Active Materials on the Performance of All-Solid-State Batteries Based on Numerical Simulations and Experiments</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of The Electrochemical Society</span>
+              <span>K. Lee, K. Yanagi, N. Uesawa, T. Arashi and M. Kodama</span>
+              <span>Mar 31, 2026</span>
+              <span><a href="https://doi.org/10.1149/1945-7111/ae568e" target="_blank">10.1149/1945-7111/ae568e</a></span>
+            </div>
+            
+            <p class="abstract">To achieve high performance in all-solid-state batteries, it is necessary to improve lithium-ion transport in the solid electrolyte (SE) and lithium diffusion in the active material (AM) by understanding the internal reaction mechanisms. However, the lithium diffusion behavior of various AMs in all-solid-state batteries and its effects on battery performance have not been fully clarified. Herein, we performed 3D simulations that reproduce the actual cathode structures visualized by X-ray CT images, using LiCoO2 (LCO), LiNi0.8Co0.1Mn0.1O2 (NCM811), and LiNi0.5Co0.2Mn0.3O2 (NCM523) as AMs. The 3…</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.6</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#9</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726002011?dgcid=rss_sd_all" target="_blank" rel="noopener">Solid Electrolyte Interphase (SEI) for silicon anodes: From evolution to interface engineering and system-level optimization</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: May 2026 Source: Energy Storage Materials, Volume 88 Author(s): Xinyu Jiang, Xiaoyue Shi, Yaochun Yao, Wenjin Han, Xiangyang Zhou, Bo Jin, Yong Lei, Bin Yang, Keyu Zhang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#10</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0013468626006444?dgcid=rss_sd_all" target="_blank" rel="noopener">Electrodeposited tin on three-dimensional nickel mesh enables highly reversible and dendrite-free lithium metal anodes</a></div>
+            <div class="card-meta">
+              <span class="jtag">Electrochimica Acta</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 10 July 2026 Source: Electrochimica Acta, Volume 564 Author(s): Bingshu Guo, Miao Fu, Yi Tan, Nanfeng Xiang, Chunshuang Wang, Guilong Yan, Junchen Chen, Bo Yu, Zhiyuan Ma</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#11</div>
+            <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.202523301?af=R" target="_blank" rel="noopener">In Situ Construction of Rich‐LiF/LiBr SEI by Ion‐Supported Porous Polymer Strategy for High Interfacial Stability All‐Solid‐State Lithium Metal Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Advanced Functional Materials</span>
+              <span>Jintao Liu, 
+Ruijie Mao, 
+Tanghao Wang, 
+Xiao Liu, 
+Yibing Qu, 
+Biao Zhang</span>
+              <span>Apr 03, 2026</span>
+              <span><a href="https://doi.org/10.1002/adfm.202523301" target="_blank">10.1002/adfm.202523301</a></span>
+            </div>
+            
+            <p class="abstract">Advanced Functional Materials, Volume 36, Issue 27, 2 April 2026.</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.3</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#12</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2542435126000760?dgcid=rss_sd_all" target="_blank" rel="noopener">A continuous carbon nanotube sheath enables ultrahigh energy density and fast charging in dry-processed thick electrodes</a></div>
+            <div class="card-meta">
+              <span class="jtag">Joule</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 27 March 2026 Source: Joule Author(s): Jin Kyo Koo, Jaejin Lim, Chaeyeon Ha, Yewon Kwon, Jae Kwon Seo, Hyun-seung Kim, Yong Min Lee, Young-Jun Kim</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.2</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#13</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0378775326007743?dgcid=rss_sd_all" target="_blank" rel="noopener">Operando monitoring of health and overcharge warning in lithium-ion battery with high-sensitivity, small-diameter optical fiber sensor</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Power Sources</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 15 June 2026 Source: Journal of Power Sources, Volume 677 Author(s): Jiajin Zheng, Jianwen Zhou, Xinyu Wang, Yuxiang Li, Junyu Lu, Shanshan Cao, Ertao Hu, Peng Lv, Kehan Yu, Feifei Shi, Wei Wei</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.2</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#14</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0013468626006742?dgcid=rss_sd_all" target="_blank" rel="noopener">&lt;em&gt;Operando&lt;/em&gt; X-ray transmission microscopy of dynamic concentration change of electrolyte salt in composite electrodes of lithium-ion battery</a></div>
+            <div class="card-meta">
+              <span class="jtag">Electrochimica Acta</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 20 July 2026 Source: Electrochimica Acta, Volume 565 Author(s): Hisao Yamashige, Noritoshi Furuta, Masato Mukoyama, Takamasa Nonaka, Yuki Orikasa</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#15</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2542435125004544?dgcid=rss_sd_all" target="_blank" rel="noopener">Microstructure-tailored Ni-rich cathode with fast Li&lt;sup&gt;+&lt;/sup&gt; diffusion layer boosts high-rate and long-cycling all-solid-state batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Joule</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 18 March 2026 Source: Joule, Volume 10, Issue 3 Author(s): Bosheng Zhao, Dongsheng Ren, Deqing Li, Hongkun Pan, Yi Guo, Qianfan Pei, Xinyu Rui, Dechang Wang, Jinli Liu, Feixiong He, Peng Huang, Tiening Tan, Gaolong Zhu, Jianfeng Hua, Xiang Liu, Languang Lu, Minggao Ouyang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#16</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2666386426000421?dgcid=rss_sd_all" target="_blank" rel="noopener">4D multimodal neutron and X-ray tomography of lithium transport in all-solid-state batteries using Li-7 contrast enhancement</a></div>
+            <div class="card-meta">
+              <span class="jtag">Cell Reports Physical Science</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 18 February 2026 Source: Cell Reports Physical Science, Volume 7, Issue 2 Author(s): Philip Vestin, Eva Schlautmann, Oriol Sans-Planell, Nikolay Kardjilov, Robin Woracek, Alessandro Tengattini, Wolfgang G. Zeier, Stephen Hall</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#17</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2666386426000184?dgcid=rss_sd_all" target="_blank" rel="noopener">Sulfide redox couple enabled dynamic lattice-oxygen stabilization in lithium-rich manganese oxide all-solid-state batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Cell Reports Physical Science</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 18 February 2026 Source: Cell Reports Physical Science, Volume 7, Issue 2 Author(s): Zhan Wu, Shengjie Wu, Zhouyu Huang, Haiyuan Zhang, Wenlong Song, Xiayin Yao, Cen Wang, Zhe Li, Wenkui Zhang, Yang Xia, Ruyi Fang, Xinyong Tao, Hui Huang, Jun Zhang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#18</div>
+            <div class="card-title"><a href="http://dx.doi.org/10.1021/acsenergylett.6c00020" target="_blank" rel="noopener">[ASAP] AutoSEE: An Artificial Intelligence Agent for Automated Solid Electrolyte Exploration</a></div>
+            <div class="card-meta">
+              <span class="jtag">ACS Energy Letters</span>
+              <span>Feifei Luo, Deyuan Li, Zhenyi Lin, Qilong Wang, and Chunpeng Yang</span>
+              <span>Apr 02, 2026</span>
+              <span><a href="https://doi.org/10.1021/acsenergylett.6c00020" target="_blank">10.1021/acsenergylett.6c00020</a></span>
+            </div>
+            
+            <p class="abstract">ACS Energy Letters DOI: 10.1021/acsenergylett.6c00020</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#19</div>
+            <div class="card-title"><a href="http://dx.doi.org/10.1021/acsami.5c22307" target="_blank" rel="noopener">[ASAP] Polyurethane Solid Electrolyte Interface Mechanical-Electrochemical Coupling Characteristics Enhanced by SiO2 Aerogel Cross-Linking Reaction for Fast Li+ Interface Dynamics</a></div>
+            <div class="card-meta">
+              <span class="jtag">ACS Applied Materials &amp; Interfaces</span>
+              <span>Hao Feng, Zipeng Sun, Yaoxin Li, Chengwei Ma, and Jiangqi Zhou</span>
+              <span>Mar 23, 2026</span>
+              <span><a href="https://doi.org/10.1021/acsami.5c22307" target="_blank">10.1021/acsami.5c22307</a></span>
+            </div>
+            
+            <p class="abstract">ACS Applied Materials &amp;amp; Interfaces DOI: 10.1021/acsami.5c22307</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#20</div>
+            <div class="card-title"><a href="http://dx.doi.org/10.1021/acs.chemmater.5c02939" target="_blank" rel="noopener">[ASAP] Complex Dynamics in Argyrodite Solid-State Ion Conductors</a></div>
+            <div class="card-meta">
+              <span class="jtag">Chemistry of Materials</span>
+              <span>Austin M. Shotwell, Shelby L. Galinat, and Annalise E. Maughan</span>
+              <span>Mar 27, 2026</span>
+              <span><a href="https://doi.org/10.1021/acs.chemmater.5c02939" target="_blank">10.1021/acs.chemmater.5c02939</a></span>
+            </div>
+            
+            <p class="abstract">Chemistry of Materials DOI: 10.1021/acs.chemmater.5c02939</p>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+    
+  </main>
+
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-title">Papers by journal</div>
+      
+      <div class="sj"><span style="color:#374151">ACS Applied Materials &amp; Interfaces</span><span>1</span></div>
+      
+      <div class="sj"><span style="color:#374151">ACS Energy Letters</span><span>1</span></div>
+      
+      <div class="sj"><span style="color:#374151">Advanced Energy Materials</span><span>3</span></div>
+      
+      <div class="sj"><span style="color:#374151">Advanced Functional Materials</span><span>2</span></div>
+      
+      <div class="sj"><span style="color:#374151">Cell Reports Physical Science</span><span>2</span></div>
+      
+      <div class="sj"><span style="color:#374151">Chemistry of Materials</span><span>1</span></div>
+      
+      <div class="sj"><span style="color:#374151">Electrochimica Acta</span><span>2</span></div>
+      
+      <div class="sj"><span style="color:#374151">Energy Storage Materials</span><span>2</span></div>
+      
+      <div class="sj"><span style="color:#374151">Joule</span><span>3</span></div>
+      
+      <div class="sj"><span style="color:#374151">Journal of Power Sources</span><span>1</span></div>
+      
+      <div class="sj"><span style="color:#374151">Journal of The Electrochemical Society</span><span>1</span></div>
+      
+      <div class="sj"><span style="color:#374151">Journal of the American Chemical Society</span><span>1</span></div>
+      
+    </div>
+  </aside>
+</div>
+
+<footer>Generated by Battery Paper Report Agent on 2026-04-04 23:12</footer>
+
+</body>
+</html>

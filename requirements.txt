@@ -1,0 +1,4 @@
+feedparser
+PyYAML
+Jinja2
+Levenshtein

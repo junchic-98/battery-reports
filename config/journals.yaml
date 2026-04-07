@@ -1,0 +1,142 @@
+journals:
+  # ── Nature Portfolio ───────────────────────────────────────────────────────
+  # Pattern: https://www.nature.com/[slug].rss
+  - name: "Nature Energy"
+    url: "https://www.nature.com/nenergy.rss"
+    enabled: true
+
+  - name: "Nature Materials"
+    url: "https://www.nature.com/nmat.rss"
+    enabled: true
+
+  - name: "Nature Communications"
+    url: "https://www.nature.com/ncomms.rss"
+    enabled: true
+
+  - name: "Communications Materials"
+    url: "https://www.nature.com/commsmat.rss"
+    enabled: true
+
+  # ── Cell Press (Elsevier ScienceDirect) ───────────────────────────────────
+  # Pattern: https://rss.sciencedirect.com/publication/science/[ISSN-no-hyphens]
+  - name: "Joule"
+    url: "https://rss.sciencedirect.com/publication/science/25424351"
+    enabled: true
+
+  - name: "Cell Reports Physical Science"
+    url: "https://rss.sciencedirect.com/publication/science/26663864"
+    enabled: true
+
+  # ── ACS Publications ───────────────────────────────────────────────────────
+  # Pattern: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=[CODE]
+  - name: "ACS Energy Letters"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=aelccp"
+    enabled: true
+
+  - name: "ACS Nano"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=ancac3"
+    enabled: true
+
+  - name: "ACS Applied Materials & Interfaces"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=aamick"
+    enabled: true
+
+  - name: "Journal of the American Chemical Society"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jacsat"
+    enabled: true
+
+  - name: "Chemistry of Materials"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=cmatex"
+    enabled: true
+
+  - name: "Nano Letters"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=nalefd"
+    enabled: true
+
+  # ── Royal Society of Chemistry ─────────────────────────────────────────────
+  # Pattern: https://feeds.rsc.org/rss/[CODE]
+  - name: "Energy & Environmental Science"
+    url: "https://feeds.rsc.org/rss/ee"
+    enabled: true
+
+  - name: "Journal of Materials Chemistry A"
+    url: "https://feeds.rsc.org/rss/ta"
+    enabled: true
+
+  - name: "Chemical Science"
+    url: "https://feeds.rsc.org/rss/sc"
+    enabled: false
+
+  # ── Elsevier / ScienceDirect ───────────────────────────────────────────────
+  # Pattern: https://rss.sciencedirect.com/publication/science/[ISSN-no-hyphens]
+  - name: "Journal of Power Sources"
+    url: "https://rss.sciencedirect.com/publication/science/03787753"
+    enabled: true
+
+  - name: "Electrochimica Acta"
+    url: "https://rss.sciencedirect.com/publication/science/00134686"
+    enabled: true
+
+  - name: "Energy Storage Materials"
+    url: "https://rss.sciencedirect.com/publication/science/24058297"
+    enabled: true
+
+  - name: "Journal of Energy Storage"
+    url: "https://rss.sciencedirect.com/publication/science/2352152X"
+    enabled: true
+
+  - name: "Nano Energy"
+    url: "https://rss.sciencedirect.com/publication/science/22112855"
+    enabled: true
+
+
+  # ── Wiley ──────────────────────────────────────────────────────────────────
+  # Pattern: https://onlinelibrary.wiley.com/action/showFeed?jc=[ISSN-no-hyphens]&type=etoc&feed=rss
+  - name: "Advanced Energy Materials"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=16146840&type=etoc&feed=rss"
+    enabled: true
+
+  - name: "Advanced Materials"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=15214095&type=etoc&feed=rss"
+    enabled: true
+
+  - name: "Advanced Functional Materials"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=16163028&type=etoc&feed=rss"
+    enabled: true
+
+  - name: "Small"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=16136829&type=etoc&feed=rss"
+    enabled: false
+
+  - name: "Angewandte Chemie International Edition"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=15213773&type=etoc&feed=rss"
+    enabled: true
+
+
+
+  # ── IOP Publishing ─────────────────────────────────────────────────────────
+  # Pattern: https://iopscience.iop.org/journal/rss/[ISSN]
+  - name: "Journal of The Electrochemical Society"
+    url: "https://iopscience.iop.org/journal/rss/1945-7111"
+    enabled: true
+
+  # ── Recommended for ASSB & Li-S ────────────────────────────────────────────
+  - name: "Nature Nanotechnology"
+    url: "https://www.nature.com/nnano.rss"
+    enabled: true
+
+  - name: "Matter (Cell Press)"
+    url: "https://rss.sciencedirect.com/publication/science/25902385"
+    enabled: true
+
+  - name: "Solid State Ionics"
+    url: "https://rss.sciencedirect.com/publication/science/01672738"
+    enabled: true  # Classic journal for solid electrolytes (argyrodite, garnet, etc.)
+
+  - name: "Batteries & Supercaps"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=25666223&type=etoc&feed=rss"
+    enabled: true
+
+  - name: "Advanced Science"
+    url: "https://onlinelibrary.wiley.com/action/showFeed?jc=21983844&type=etoc&feed=rss"
+    enabled: true
