@@ -217,6 +217,8 @@ def generate_report(papers: list[Paper]) -> Path:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     html_path = OUT_DIR / f"{date_str}.html"
 
+    past_reports = sorted([f.stem for f in OUT_DIR.glob("*.html") if "index" not in f.name and re.match(r"\d{4}-\d{2}-\d{2}", f.stem)], reverse=True)
+
     sorted_papers = sorted(papers, key=lambda p: p.score, reverse=True)
     journal_counts = {}
     for p in papers:
@@ -227,15 +229,23 @@ def generate_report(papers: list[Paper]) -> Path:
     env.filters["fmt_date"] = _fmt_date
 
     tmpl = env.get_template("template.html")
-    html = tmpl.render(date=date, date_str=date_str,
+    html_out = tmpl.render(date=date, date_str=date_str,
                        papers=sorted_papers,
                        journal_counts=dict(sorted(journal_counts.items())),
-                       total=len(papers))
-    html_path.write_text(html, encoding="utf-8")
+                       total=len(papers),
+                       past_reports=past_reports, is_index=False)
+                       
+    html_index = tmpl.render(date=date, date_str=date_str,
+                       papers=sorted_papers,
+                       journal_counts=dict(sorted(journal_counts.items())),
+                       total=len(papers),
+                       past_reports=past_reports, is_index=True)
+
+    html_path.write_text(html_out, encoding="utf-8")
     
     # Also save as index.html for web hosting (e.g., GitHub Pages)
     index_path = ROOT / "index.html"
-    index_path.write_text(html, encoding="utf-8")
+    index_path.write_text(html_index, encoding="utf-8")
     
     log.info("Report: %s (and index.html)", html_path)
     return html_path

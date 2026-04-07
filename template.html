@@ -173,6 +173,24 @@
       <div class="sj" onclick="filterJournal('{{ j|escape }}')"><span style="color:#374151" class="j-name">{{ j }}</span><span>{{ c }}</span></div>
       {% endfor %}
     </div>
+
+    {% if past_reports %}
+    <div class="sidebar-card" style="margin-top: 1rem;">
+      <div class="sidebar-title">
+        <span>Past Reports</span>
+      </div>
+      {% for pr in past_reports[:7] %}
+        {% if pr != date_str %}
+        <a href="{% if is_index %}out/{% endif %}{{ pr }}.html" style="text-decoration:none; display: block;">
+          <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
+            <span style="color:#4f46e5;font-weight:700;pointer-events:none;">🗓</span>
+            <span style="color:#374151; pointer-events: none; font-weight: 600;">{{ pr }}</span>
+          </div>
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
   </aside>
 </div>
 
