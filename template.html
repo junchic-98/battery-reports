@@ -164,18 +164,8 @@
   </main>
 
   <aside class="sidebar">
-    <div class="sidebar-card">
-      <div class="sidebar-title">
-        <span>Papers by journal</span>
-        <span class="clear-filter" id="clearBtn" onclick="filterJournal(null)">Clear</span>
-      </div>
-      {% for j, c in journal_counts|dictsort(case_sensitive=False) %}
-      <div class="sj" onclick="filterJournal('{{ j|escape }}')"><span style="color:#374151" class="j-name">{{ j }}</span><span>{{ c }}</span></div>
-      {% endfor %}
-    </div>
-
     {% if past_reports %}
-    <div class="sidebar-card" style="margin-top: 1rem;">
+    <div class="sidebar-card" style="margin-bottom: 1rem;">
       <div class="sidebar-title">
         <span>Past Reports</span>
       </div>
@@ -191,6 +181,18 @@
       {% endfor %}
     </div>
     {% endif %}
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">
+        <span>Papers by journal</span>
+        <span class="clear-filter" id="clearBtn" onclick="filterJournal(null)">Clear</span>
+      </div>
+      <div style="max-height: 45vh; overflow-y: auto; padding-right: 0.2rem;">
+        {% for j, c in journal_counts|dictsort(case_sensitive=False) %}
+        <div class="sj" onclick="filterJournal('{{ j|escape }}')"><span style="color:#374151" class="j-name">{{ j }}</span><span>{{ c }}</span></div>
+        {% endfor %}
+      </div>
+    </div>
   </aside>
 </div>
 
