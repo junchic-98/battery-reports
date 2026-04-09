@@ -1,0 +1,20 @@
+{
+  "concepts": {
+    "All-Solid-State": { "weight": 10, "keywords": ["all-solid-state", "assb"] },
+    "Lithium-Sulfur": { "weight": 10, "keywords": ["lithium-sulfur", "li-s"] },
+    "Argyrodite (LPSCl)": { "weight": 10, "keywords": ["argyrodite", "lpscl", "li6ps5cl", "li6ps5br"] },
+    "Solid Electrolyte (General)": { "weight": 10, "keywords": ["solid electrolyte", "bare solid electrolyte"] },
+    "Sulfide Chemistry": { "weight": 9, "keywords": ["sulfide electrolyte", "sulfide-based", "li2s", "li3ps4"] },
+    "Garnet (LLZO)": { "weight": 9, "keywords": ["garnet", "llzo", "li7la3zr2o12"] },
+    "Lithium Metal/Dendrites": { "weight": 8, "keywords": ["lithium metal", "lithium dendrite", "dendrite"] },
+    "Ionic Conductivity": { "weight": 8, "keywords": ["ionic conductivity"] },
+    "Fast Charging": { "weight": 8, "keywords": ["fast charging", "rate capability"] },
+    "Thermal Edge Cases": { "weight": 7, "keywords": ["thermal runaway", "safety"] },
+    "General Performance Metric": { "weight": 7, "keywords": ["energy density", "specific capacity", "cycle stability", "coulombic efficiency"] },
+    "Degradation/Aging": { "weight": 7, "keywords": ["capacity fading", "degradation mechanism", "aging mechanism", "overpotential"] },
+    "NASICON/LISICON": { "weight": 6, "keywords": ["nasicon", "lisicon"] },
+    "Electrodes": { "weight": 6, "keywords": ["cathode material", "anode material", "silicon anode"] },
+    "Interphase (SEI)": { "weight": 6, "keywords": ["sei", "solid electrolyte interphase", "electrochemical impedance", "interphase"] },
+    "General Battery Terms": { "weight": 4, "keywords": ["lithium-ion battery", "energy storage"] }
+  }
+}
