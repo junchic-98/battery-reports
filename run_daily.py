@@ -183,25 +183,60 @@ def score_all(papers: list[Paper]) -> list[Paper]:
     if not KEYWORDS.exists():
         log.warning("keywords.json not found — scoring disabled."); return papers
     data = json.loads(KEYWORDS.read_text(encoding="utf-8"))
-    kws = data.get("keywords", data) if isinstance(data, dict) else {}
-    if not kws: return papers
+    
+    # Support both new 'concepts' format and old 'keywords' format
+    if "concepts" in data:
+        concepts = data["concepts"]
+        max_possible = sum(c.get("weight", 0) * 2 for c in concepts.values())
+        
+        for p in papers:
+            tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
+            raw = 0
+            for c_name, c_data in concepts.items():
+                w = c_data.get("weight", 0)
+                kws = sorted(c_data.get("keywords", []), key=lambda x: len(_norm(x)), reverse=True)
+                
+                hit_title = False
+                for k in kws:
+                    nk = _norm(k)
+                    if nk in tt:
+                        raw += w * 2
+                        tt = tt.replace(nk, " ")
+                        hit_title = True
+                        break # Only count concept once
+                
+                if hit_title:
+                    continue
+                
+                for k in kws:
+                    nk = _norm(k)
+                    if nk in ta:
+                        raw += w
+                        ta = ta.replace(nk, " ")
+                        break # Only count concept once
+            
+            p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
 
-    max_possible = sum(w * 2 for w in kws.values())
-    sorted_kws = sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True)
-    for p in papers:
-        tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
-        raw = 0
-        for k, w in sorted_kws:
-            nk = _norm(k)
-            if nk in tt:
-                raw += w * 2
-                tt = tt.replace(nk, " ")
-            elif nk in ta:
-                raw += w
-                ta = ta.replace(nk, " ")
-        p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+    else:
+        # Fallback to old format
+        kws = data.get("keywords", data) if isinstance(data, dict) else {}
+        if not kws: return papers
+        max_possible = sum(w * 2 for w in kws.values())
+        sorted_kws = sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True)
+        for p in papers:
+            tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
+            raw = 0
+            for k, w in sorted_kws:
+                nk = _norm(k)
+                if nk in tt:
+                    raw += w * 2
+                    tt = tt.replace(nk, " ")
+                elif nk in ta:
+                    raw += w
+                    ta = ta.replace(nk, " ")
+            p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
 
-    high = sum(1 for p in papers if p.score >= 5)
+    high = sum(1 for p in papers if p.score >= 5.0)
     log.info("Scored %d papers (%d with score >= 5.0)", len(papers), high)
     return papers
 

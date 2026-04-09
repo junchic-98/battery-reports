@@ -144,3 +144,7 @@ journals:
   - name: "Advanced Science"
     url: "https://onlinelibrary.wiley.com/action/showFeed?jc=21983844&type=etoc&feed=rss"
     enabled: true
+
+  - name: "Nano-Micro Letters"
+    url: "https://www.qk.sjtu.edu.cn/nml/EN/rss_first_2311-6706.xml"
+    enabled: true
