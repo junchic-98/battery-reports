@@ -184,6 +184,13 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         log.warning("keywords.json not found — scoring disabled."); return papers
     data = json.loads(KEYWORDS.read_text(encoding="utf-8"))
     
+    def _highlight(text: str, kws: set) -> str:
+        if not text or not kws: return text
+        for kw in sorted(kws, key=len, reverse=True):
+            esc = re.escape(kw)
+            text = re.sub(rf"(?i)(?<![\w-])({esc})(?![\w-])", r"<mark>\1</mark>", text)
+        return text
+
     # Support both new 'concepts' format and old 'keywords' format
     if "concepts" in data:
         concepts = data["concepts"]
@@ -192,6 +199,7 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         for p in papers:
             tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
             raw = 0
+            hits = set()
             for c_name, c_data in concepts.items():
                 w = c_data.get("weight", 0)
                 kws = sorted(c_data.get("keywords", []), key=lambda x: len(_norm(x)), reverse=True)
@@ -202,6 +210,7 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                     if nk in tt:
                         raw += w * 2
                         tt = tt.replace(nk, " ")
+                        hits.add(k)
                         hit_title = True
                         break # Only count concept once
                 
@@ -213,9 +222,14 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                     if nk in ta:
                         raw += w
                         ta = ta.replace(nk, " ")
+                        hits.add(k)
                         break # Only count concept once
             
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+            if p.abstract and len(p.abstract) > 600:
+                p.abstract = p.abstract[:600] + "…"
+            p.title = _highlight(p.title, hits)
+            p.abstract = _highlight(p.abstract, hits)
 
     else:
         # Fallback to old format
@@ -226,15 +240,22 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         for p in papers:
             tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
             raw = 0
+            hits = set()
             for k, w in sorted_kws:
                 nk = _norm(k)
                 if nk in tt:
                     raw += w * 2
                     tt = tt.replace(nk, " ")
+                    hits.add(k)
                 elif nk in ta:
                     raw += w
                     ta = ta.replace(nk, " ")
+                    hits.add(k)
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+            if p.abstract and len(p.abstract) > 600:
+                p.abstract = p.abstract[:600] + "…"
+            p.title = _highlight(p.title, hits)
+            p.abstract = _highlight(p.abstract, hits)
 
     high = sum(1 for p in papers if p.score >= 5.0)
     log.info("Scored %d papers (%d with score >= 5.0)", len(papers), high)

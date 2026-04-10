@@ -145,7 +145,7 @@
           </div>
           <div class="card-body">
             <div class="rank">#{{ loop.index }}</div>
-            <div class="card-title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title }}</a></div>
+            <div class="card-title"><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title | safe }}</a></div>
             <div class="card-meta">
               <span class="jtag">{{ p.journal }}</span>
               {% if p.authors %}<span>{{ p.authors[:3]|join(", ") }}{% if p.authors|length > 3 %} et al.{% endif %}</span>{% endif %}
@@ -153,7 +153,7 @@
               {% if p.doi %}<span><a href="https://doi.org/{{ p.doi }}" target="_blank">{{ p.doi }}</a></span>{% endif %}
             </div>
             {% if p.abstract %}
-            <p class="abstract">{{ p.abstract[:600] }}{% if p.abstract|length > 600 %}…{% endif %}</p>
+            <p class="abstract">{{ p.abstract | safe }}</p>
             {% endif %}
           </div>
         </div>
