@@ -115,9 +115,16 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
             title = (getattr(e,"title","") or "").strip()
             link  = (getattr(e,"link","")  or "").strip()
             if not title or not link: continue
+            
+            abstract = _extract_abstract(e)
+            if abstract:
+                # Strip the journal name itself so we don't get fake hits (e.g. from "Energy Storage Materials")
+                abstract = re.sub(rf"(?i)\b{re.escape(name)}\b", "", abstract).strip()
+                abstract = re.sub(r"^[,\-\.\s]+", "", abstract)
+
             papers.append(Paper(title=title, journal=name, url=link,
                                 doi=_extract_doi(e), authors=_extract_authors(e),
-                                abstract=_extract_abstract(e), published=_parse_date(e)))
+                                abstract=abstract, published=_parse_date(e)))
         log.info("    -> %d papers", len([p for p in papers if p.journal == name]))
         if i < len(enabled)-1: time.sleep(delay)
     log.info("Total fetched: %d", len(papers))
@@ -188,7 +195,7 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         if not text or not kws: return text
         for kw in sorted(kws, key=len, reverse=True):
             esc = re.escape(kw)
-            text = re.sub(rf"(?i)(?<![\w-])({esc})(?![\w-])", r"<mark>\1</mark>", text)
+            text = re.sub(rf"(?i)(?<![\w-])({esc})(?![\w-])", r"<b>\1</b>", text)
         return text
 
     # Support both new 'concepts' format and old 'keywords' format
