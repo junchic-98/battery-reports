@@ -281,6 +281,10 @@ def generate_report(papers: list[Paper]) -> Path:
     html_path = OUT_DIR / f"{date_str}.html"
 
     past_reports = sorted([f.stem for f in OUT_DIR.glob("*.html") if "index" not in f.name and re.match(r"\d{4}-\d{2}-\d{2}", f.stem)], reverse=True)
+    all_reports = sorted(list(set(past_reports + [date_str])), reverse=True)
+    
+    # Write a dynamic JS file so old static reports can dynamically fetch the latest sidebar
+    (OUT_DIR / "sidebar.js").write_text(f"const ALL_REPORTS = {json.dumps(all_reports)};", encoding="utf-8")
 
     sorted_papers = sorted(papers, key=lambda p: p.score, reverse=True)
     journal_counts = {}
