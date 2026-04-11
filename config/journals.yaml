@@ -135,11 +135,11 @@ journals:
 
   - name: "Solid State Ionics"
     url: "https://rss.sciencedirect.com/publication/science/01672738"
-    enabled: true  # Classic journal for solid electrolytes (argyrodite, garnet, etc.)
+    enabled: false  # Classic journal for solid electrolytes (argyrodite, garnet, etc.)
 
   - name: "Batteries & Supercaps"
     url: "https://onlinelibrary.wiley.com/action/showFeed?jc=25666223&type=etoc&feed=rss"
-    enabled: true
+    enabled: false
 
   - name: "Advanced Science"
     url: "https://onlinelibrary.wiley.com/action/showFeed?jc=21983844&type=etoc&feed=rss"
