@@ -191,6 +191,10 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         log.warning("keywords.json not found — scoring disabled."); return papers
     data = json.loads(KEYWORDS.read_text(encoding="utf-8"))
     
+    import math
+    if_path = ROOT / "data" / "impact_factors.json"
+    ifs = json.loads(if_path.read_text(encoding="utf-8")) if if_path.exists() else {}
+
     def _highlight(text: str, kws: set) -> str:
         if not text or not kws: return text
         for kw in sorted(kws, key=len, reverse=True):
@@ -233,6 +237,12 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                         break # Only count concept once
             
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+            if p.score > 0.0:
+                jname = (p.journal or "").lower().strip()
+                j_score = ifs.get(jname, 0.0)
+                if j_score > 1.0:
+                    p.score = round(p.score + math.log10(j_score), 1)
+
             if p.abstract and len(p.abstract) > 600:
                 p.abstract = p.abstract[:600] + "…"
             p.title = _highlight(p.title, hits)
@@ -259,6 +269,12 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                     ta = ta.replace(nk, " ")
                     hits.add(k)
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+            if p.score > 0.0:
+                jname = (p.journal or "").lower().strip()
+                j_score = ifs.get(jname, 0.0)
+                if j_score > 1.0:
+                    p.score = round(p.score + math.log10(j_score), 1)
+
             if p.abstract and len(p.abstract) > 600:
                 p.abstract = p.abstract[:600] + "…"
             p.title = _highlight(p.title, hits)
