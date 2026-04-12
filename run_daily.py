@@ -15,7 +15,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
 
 import json, logging, re, sqlite3, time, webbrowser
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -279,6 +279,35 @@ def generate_report(papers: list[Paper]) -> Path:
     date_str = date.strftime("%Y-%m-%d")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     html_path = OUT_DIR / f"{date_str}.html"
+    json_path = OUT_DIR / f"{date_str}.json"
+
+    # --- Load & Merge with Daily Cache ---
+    existing = {}
+    if json_path.exists():
+        try:
+            for item in json.loads(json_path.read_text(encoding="utf-8")):
+                p = Paper(**item)
+                if isinstance(p.published, str):
+                    try: p.published = datetime.fromisoformat(p.published)
+                    except: p.published = None
+                existing[p.url] = p
+        except Exception as e:
+            log.warning("Could not load daily json cache: %s", e)
+
+    for p in papers:
+        existing[p.url] = p
+
+    papers = list(existing.values())
+    
+    def json_default(obj):
+        if isinstance(obj, datetime): return obj.isoformat()
+        raise TypeError(f"Not serializable: {type(obj)}")
+
+    try:
+        json_path.write_text(json.dumps([asdict(p) for p in papers], default=json_default, indent=2), encoding="utf-8")
+    except Exception as e:
+        log.warning("Could not save daily json cache: %s", e)
+    # ---------------------------------------
 
     past_reports = sorted([f.stem for f in OUT_DIR.glob("*.html") if "index" not in f.name and re.match(r"\d{4}-\d{2}-\d{2}", f.stem)], reverse=True)
     all_reports = sorted(list(set(past_reports + [date_str])), reverse=True)
