@@ -1,23 +1,142 @@
 {
   "concepts": {
-    "All-Solid-State": { "weight": 8, "keywords": ["all-solid-state", "assb"] },
-    "Lithium-Sulfur": { "weight": 8, "keywords": ["lithium-sulfur", "li-s"] },
-    "Argyrodite (LPSCl)": { "weight": 10, "keywords": ["argyrodite", "lpscl", "li6ps5cl", "li6ps5br"] },
-    "Solid Electrolyte (General)": { "weight": 8, "keywords": ["solid electrolyte", "bare solid electrolyte"] },
-    "Sulfide Chemistry": { "weight": 10, "keywords": ["sulfide electrolyte", "sulfide-based", "li2s", "li3ps4"] },
-    "Lithium (General)": { "weight": 10, "keywords": ["lithium", "li-ion", "li-", "li "] },
-    "Garnet (LLZO)": { "weight": 4, "keywords": ["garnet", "llzo", "li7la3zr2o12"] },
-    "NASICON/LISICON": { "weight": 3, "keywords": ["nasicon", "lisicon"] },
-    "Sodium": { "weight": 2, "keywords": ["sodium", "na-ion", "sodium-ion", "sodium-metal"] },
-    "Pressure": { "weight": 10, "keywords": ["pressure", "stack pressure"] },
-    "Lithium Metal/Alloy/Dendrites": { "weight": 5, "keywords": ["lithium metal", "lithium alloy", "alloy anode", "lithium dendrite", "dendrite", "li metal", "li alloy"] },
-    "Interphase (SEI)": { "weight": 3, "keywords": ["sei", "solid electrolyte interphase", "electrochemical impedance", "interphase"] },
-    "Ionic Conductivity": { "weight": 3, "keywords": ["ionic conductivity"] },
-    "Fast Charging": { "weight": 2, "keywords": ["fast charging", "rate capability"] },
-    "Thermal Edge Cases": { "weight": 2, "keywords": ["thermal runaway", "safety"] },
-    "General Performance Metric": { "weight": 2, "keywords": ["energy density", "specific capacity", "cycle stability", "coulombic efficiency"] },
-    "Degradation/Aging": { "weight": 2, "keywords": ["capacity fading", "degradation mechanism", "aging mechanism", "overpotential"] },
-    "Electrodes": { "weight": 2, "keywords": ["cathode material", "anode material", "silicon anode"] },
-    "General Battery Terms": { "weight": 1, "keywords": ["lithium-ion battery", "energy storage"] }
+    "All-Solid-State": {
+      "weight": 8,
+      "keywords": [
+        "all-solid-state",
+        "assb"
+      ]
+    },
+    "Lithium-Sulfur": {
+      "weight": 8,
+      "keywords": [
+        "lithium-sulfur",
+        "li-s"
+      ]
+    },
+    "Argyrodite (LPSCl)": {
+      "weight": 10,
+      "keywords": [
+        "argyrodite",
+        "lpscl",
+        "li6ps5cl",
+        "lpscl-based",
+        "li6ps5cl-based",
+        "li6ps5br"
+      ]
+    },
+    "Solid Electrolyte (General)": {
+      "weight": 8,
+      "keywords": [
+        "solid electrolyte",
+        "bare solid electrolyte"
+      ]
+    },
+    "Sulfide Chemistry": {
+      "weight": 10,
+      "keywords": [
+        "sulfide electrolyte",
+        "sulfide-based",
+        "li2s",
+        "li3ps4"
+      ]
+    },
+    "Lithium (General)": {
+      "weight": 9,
+      "keywords": [
+        "lithium",
+        "li-ion",
+        "li-",
+        "li "
+      ]
+    },
+    "Garnet (LLZO)": {
+      "weight": 2,
+      "keywords": [
+        "garnet",
+        "llzo",
+        "li7la3zr2o12"
+      ]
+    },
+    "NASICON/LISICON": {
+      "weight": 2,
+      "keywords": [
+        "nasicon",
+        "lisicon"
+      ]
+    },
+    "Sodium": {
+      "weight": 2,
+      "keywords": [
+        "sodium",
+        "na-ion",
+        "sodium-ion",
+        "sodium-metal"
+      ]
+    },
+    "Pressure": {
+      "weight": 9,
+      "keywords": [
+        "pressure",
+        "stack pressure"
+      ]
+    },
+    "Lithium Metal/Alloy/Dendrites": {
+      "weight": 5,
+      "keywords": [
+        "lithium alloy",
+        "alloy anode",
+        "lithium dendrite",
+        "dendrite",
+        "li alloy"
+      ]
+    },
+    "Interphase (SEI)": {
+      "weight": 2,
+      "keywords": [
+        "sei",
+        "solid electrolyte interphase",
+        "electrochemical impedance",
+        "interphase"
+      ]
+    },
+    "Ionic Conductivity": {
+      "weight": 3,
+      "keywords": [
+        "ionic conductivity"
+      ]
+    },
+    "Fast Charging": {
+      "weight": 2,
+      "keywords": [
+        "fast charging",
+        "rate capability"
+      ]
+    },
+    "Thermal Edge Cases": {
+      "weight": 2,
+      "keywords": [
+        "thermal runaway",
+        "safety"
+      ]
+    },
+    "General Performance Metric": {
+      "weight": 2,
+      "keywords": [
+        "energy density",
+        "specific capacity",
+        "cycle stability",
+        "coulombic efficiency"
+      ]
+    },
+    "Degradation/Aging": {
+      "weight": 2,
+      "keywords": [
+        "capacity fading",
+        "degradation mechanism",
+        "aging mechanism",
+        "overpotential"
+      ]
+    }
   }
 }
