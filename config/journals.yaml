@@ -110,7 +110,7 @@ journals:
 
   - name: "Small"
     url: "https://onlinelibrary.wiley.com/action/showFeed?jc=16136829&type=etoc&feed=rss"
-    enabled: false
+    enabled: true
 
   - name: "Angewandte Chemie International Edition"
     url: "https://onlinelibrary.wiley.com/action/showFeed?jc=15213773&type=etoc&feed=rss"
