@@ -4,7 +4,8 @@
       "weight": 8,
       "keywords": [
         "all-solid-state",
-        "assb"
+        "assb",
+        "solid-state batter"
       ]
     },
     "Lithium-Sulfur": {
@@ -42,12 +43,9 @@
       ]
     },
     "Lithium (General)": {
-      "weight": 9,
+      "weight": 4,
       "keywords": [
-        "lithium",
-        "li-ion",
-        "li-",
-        "li "
+        "lithium"
       ]
     },
     "Garnet (LLZO)": {
@@ -77,8 +75,15 @@
     "Pressure": {
       "weight": 9,
       "keywords": [
-        "pressure",
-        "stack pressure"
+        "stack pressure",
+        "applied pressure",
+        "stacking pressure",
+        "pressure-dependent",
+        "low-pressure",
+        "densification pressure",
+        "compaction pressure",
+        "external pressure",
+        "pressure effect"
       ]
     },
     "Lithium Metal/Alloy/Dendrites": {
@@ -88,7 +93,8 @@
         "alloy anode",
         "lithium dendrite",
         "dendrite",
-        "li alloy"
+        "li alloy",
+        "li-in"
       ]
     },
     "Interphase (SEI)": {
