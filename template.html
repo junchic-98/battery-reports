@@ -132,6 +132,15 @@
     {% if not papers %}
     <div class="empty">No relevant papers found today.</div>
     {% else %}
+    {% if ai_summary %}
+    <div class="section-title">AI Summary & Top Picks</div>
+    <div class="card" style="margin-bottom: 2rem; border-left: none; padding: 1.5rem; background: #fff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+      <div style="font-size: 0.95rem; line-height: 1.7; color: #1f2937;">
+        {{ ai_summary | safe }}
+      </div>
+    </div>
+    {% endif %}
+
     <div class="section-title" id="listTitle">All Papers — Ranked by Relevance</div>
     <div class="list">
       {% for p in papers %}
