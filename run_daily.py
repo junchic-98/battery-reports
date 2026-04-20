@@ -13,7 +13,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-import json, logging, re, sqlite3, time, webbrowser
+import json, logging, re, sqlite3, time, webbrowser, os
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
@@ -23,6 +23,11 @@ from typing import Optional
 import feedparser, yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from Levenshtein import ratio as lev_ratio
+
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO,
@@ -287,6 +292,35 @@ def score_all(papers: list[Paper]) -> list[Paper]:
 # ═══════════════════════════════════════════════════════════════════════════════
 # REPORT
 # ═══════════════════════════════════════════════════════════════════════════════
+def analyze_papers_with_ai(papers: list[Paper]) -> Optional[str]:
+    if genai is None: return None
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key: return None
+    
+    log.info("Generating AI summary using Gemini...")
+    genai.configure(api_key=api_key)
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        top_papers = sorted(papers, key=lambda p: p.score, reverse=True)[:15]
+        if not top_papers:
+            return None
+            
+        prompt = "You are an expert battery materials scientist. Given the following list of newly published battery papers, downselect the top 3-5 most highly relevant papers with a focus on solid-state batteries, sulfide electrolytes, argyrodites, stack pressure, lithium-metal, and lithium-sulfur.\n\nProvide your analysis as a direct HTML snippet (e.g. <ul><li style='margin-bottom:10px;'><strong>Title</strong> - explanation</li>...</ul>) that is ready to be injected into a webpage. Do not wrap it in a markdown block, and do not include the <html> or <body> tags. Keep it very concise and professional.\n\n"
+        
+        for i, p in enumerate(top_papers):
+            clean_title = re.sub(r'<[^>]+>', '', p.title)
+            clean_abstract = re.sub(r'<[^>]+>', '', p.abstract) if p.abstract else "No abstract"
+            prompt += f"{i+1}. {clean_title} (Journal: {p.journal}, Score: {p.score})\nAbstract: {clean_abstract[:400]}...\n\n"
+            
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```[a-zA-Z]*\n|```$", "", text).strip()
+        return text
+    except Exception as e:
+        log.warning("AI generation failed: %s", e)
+        return None
 def _fmt_date(dt: Optional[datetime]) -> str:
     return dt.strftime("%b %d, %Y") if dt else "Unknown date"
 
@@ -336,6 +370,9 @@ def generate_report(papers: list[Paper]) -> Path:
     for p in papers:
         journal_counts[p.journal] = journal_counts.get(p.journal, 0) + 1
 
+    # --- Generate AI Summary ---
+    ai_summary = analyze_papers_with_ai(papers)
+
     env = Environment(loader=FileSystemLoader(str(ROOT)),
                       autoescape=select_autoescape(["html"]))
     env.filters["fmt_date"] = _fmt_date
@@ -344,13 +381,13 @@ def generate_report(papers: list[Paper]) -> Path:
     html_out = tmpl.render(date=date, date_str=date_str,
                        papers=sorted_papers,
                        journal_counts=dict(sorted(journal_counts.items())),
-                       total=len(papers),
+                       total=len(papers), ai_summary=ai_summary,
                        past_reports=past_reports, is_index=False)
                        
     html_index = tmpl.render(date=date, date_str=date_str,
                        papers=sorted_papers,
                        journal_counts=dict(sorted(journal_counts.items())),
-                       total=len(papers),
+                       total=len(papers), ai_summary=ai_summary,
                        past_reports=past_reports, is_index=True)
 
     html_path.write_text(html_out, encoding="utf-8")
