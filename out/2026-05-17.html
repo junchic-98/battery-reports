@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battery Paper Report — 2026-05-17</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a2e;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 2rem 2rem 1.75rem;
+      border-bottom: 4px solid #4f46e5;
+    }
+    .hi { max-width: 900px; margin: 0 auto; }
+    header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .3rem; }
+    header .sub { font-size: .9rem; color: #a0aec0; margin-bottom: .9rem; }
+    .pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .pill {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 4px;
+      padding: .2rem .65rem;
+      font-size: .8rem;
+      color: #e2e8f0;
+    }
+    .pill strong { color: #fff; }
+
+    /* ── Layout ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; display: grid; grid-template-columns: 1fr 180px; gap: 1.75rem; align-items: start; }
+    @media(max-width: 700px) { .page { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* ── Sidebar ── */
+    .sidebar { position: sticky; top: 1rem; }
+    .sidebar-card { background: #fff; border: 1px solid #dde1e7; border-radius: 6px; padding: .9rem; }
+    .sidebar-title { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b7280; margin-bottom: .6rem; display: flex; justify-content: space-between; align-items: center; }
+    .clear-filter { font-size: .65rem; color: #4f46e5; cursor: pointer; display: none; text-transform: none; letter-spacing: normal; font-weight: 600; }
+    .clear-filter:hover { text-decoration: underline; }
+    .sj { display: flex; justify-content: space-between; padding: .35rem .25rem; border-bottom: 1px solid #f0f0f0; font-size: .75rem; color: #374151; cursor: pointer; border-radius: 3px; }
+    .sj:hover { background: #f3f4f6; }
+    .sj:last-child { border-bottom: none; }
+    .sj span { color: #9ca3af; font-weight: 600; pointer-events: none; }
+
+    /* ── Section heading ── */
+    .section-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: #6b7280; margin-bottom: 1rem; display: flex; align-items: center; gap: .6rem;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: #dde1e7; }
+
+    /* ── Paper list ── */
+    .list { display: flex; flex-direction: column; gap: .75rem; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #dde1e7;
+      border-left: 5px solid #dde1e7;
+      border-radius: 6px;
+      padding: 1.1rem 1.1rem 1rem;
+    }
+    .card.high   { border-left-color: #16a34a; }
+    .card.medium { border-left-color: #d97706; }
+    .card.low    { border-left-color: #9ca3af; }
+
+    .card-top { display: flex; align-items: flex-start; gap: .8rem; }
+
+    .score-badge {
+      flex-shrink: 0;
+      min-width: 2.8rem; height: 2.8rem;
+      border-radius: 5px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-weight: 700; line-height: 1;
+    }
+    .score-badge .v { font-size: 1.05rem; }
+    .score-badge .l { font-size: .5rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; margin-top: 1px; }
+    .high   .score-badge { background: #dcfce7; color: #15803d; }
+    .medium .score-badge { background: #fef3c7; color: #b45309; }
+    .low    .score-badge { background: #f3f4f6; color: #6b7280; }
+
+    .card-body { flex: 1; min-width: 0; }
+    .rank { font-size: .68rem; font-weight: 700; color: #9ca3af; margin-bottom: .25rem; }
+
+    .card-title a {
+      font-size: 1rem; font-weight: 600; color: #111827;
+      text-decoration: none; line-height: 1.45;
+    }
+    .card-title a:hover { color: #4f46e5; text-decoration: underline; }
+
+    .card-meta { display: flex; flex-wrap: wrap; gap: .3rem .8rem; font-size: .75rem; color: #6b7280; margin: .4rem 0 .55rem; }
+    .card-meta a { color: #4f46e5; text-decoration: none; }
+    .card-meta a:hover { text-decoration: underline; }
+    .jtag {
+      background: #eef2ff; color: #4338ca;
+      border: 1px solid #c7d2fe; border-radius: 3px;
+      padding: .1rem .4rem; font-size: .7rem; font-weight: 600;
+    }
+
+    .abstract { font-size: .83rem; color: #374151; line-height: 1.65; }
+
+    /* ── Footer ── */
+    footer { text-align: center; padding: 1.1rem; font-size: .72rem; color: #9ca3af; border-top: 1px solid #dde1e7; }
+
+    .empty { text-align: center; padding: 4rem 2rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hi">
+    <h1>Battery Paper Report</h1>
+    <p class="sub">Sunday, May 17, 2026 &nbsp;·&nbsp; Sorted by relevance score</p>
+    <div class="pills">
+      <span class="pill"><strong>24</strong>&nbsp;papers</span>
+      <span class="pill"><strong>10</strong>&nbsp;journals</span>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <main>
+    
+    
+
+    <div class="section-title" id="listTitle">All Papers — Ranked by Relevance</div>
+    <div class="list">
+      
+      
+      
+      <article class="card high" data-journal="Journal of Energy Chemistry">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">11.2</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#1</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S209549562600269X?dgcid=rss_sd_all" target="_blank" rel="noopener">Highly stable <b>lithium</b> <b>argyrodite</b> <b>sulfide electrolyte</b> modified with metal fluoride for <b>all-solid-state</b> <b>lithium</b> batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Chemistry</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: August 2026 Source: , Volume 119 Author(s): Wenxin Li, Xiaoxue Zhao, Hong Liu, Ce-Wen Nan, Yaoyu Ren</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card high" data-journal="Joule">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">7.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#2</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S254243512600156X?dgcid=rss_sd_all" target="_blank" rel="noopener">Taming Active Material-Solid Electrolyte Interfaces with Organic Cathode for All-Solid-State Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Joule</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 16 April 2026 Source:  Author(s): Fang Hao, Xiaowei Chi, Yanliang Liang, Ye Zhang, Rong Xu, Hua Guo, Tanguy Terlier, Hui Dong, Kejie Zhao, Jun Lou, Yan Yao</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card medium" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">5.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#3</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X2602308X?dgcid=rss_sd_all" target="_blank" rel="noopener">Rapid transition and uniform deposition of <b>lithium</b> ions in solid-state batteries using hollow mesoporous silica</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Zengcai Guo, Shengsheng Wang, Shimin Liao, Yanming Wang, Yu Dong, Feng Xu, Linlin Shi, Bihai Su, Chunyan Cui, Jingbo Mu, Jingchang Li</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card medium" data-journal="Journal of Energy Chemistry">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">3.1</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#4</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2095495626002159?dgcid=rss_sd_all" target="_blank" rel="noopener">Anti-HER amino acid-based high-entropy electrolyte: suppressed dendrites and passivation in zinc anodes for high-performance aqueous zinc-ion batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Chemistry</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: July 2026 Source: , Volume 118 Author(s): Zengyuan Fan, Haiping Zhou, Yining Wang, Jia-Lin Yang, Hai Ni, Bin Fu, Jiawei Wang, Yunpeng Wu, Qingqing Pan, Hiang Kwee Lee, Xing-Long Wu</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card medium" data-journal="ACS Applied Materials &amp; Interfaces">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">3.0</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#5</div>
+            <div class="card-title"><a href="http://dx.doi.org/10.1021/acsami.6c02235" target="_blank" rel="noopener">[ASAP] Vertically Oriented Bismuth Selenide with Exposed Crystal Facets as the Sulfur Host for High-Loading Lithium–Sulfur Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">ACS Applied Materials &amp; Interfaces</span>
+              <span>Xu Tang, Xu Wang, Chuan Cai, Hanwen Zheng, Jiacheng Sun, Fengxiang Zhang, and Gaohong He</span>
+              <span>May 16, 2026</span>
+              <span><a href="https://doi.org/10.1021/acsami.6c02235" target="_blank">10.1021/acsami.6c02235</a></span>
+            </div>
+            
+            <p class="abstract">ACS Applied Materials &amp; Interfaces DOI: 10.1021/acsami.6c02235</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card medium" data-journal="Electrochimica Acta">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">3.0</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#6</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0013468626008856?dgcid=rss_sd_all" target="_blank" rel="noopener">Operando impedance diagnostics for reaction non-uniformity and rate limitation in all-solid-state battery composite cathodes</a></div>
+            <div class="card-meta">
+              <span class="jtag">Electrochimica Acta</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 10 September 2026 Source: , Volume 570 Author(s): So-Young Joo, Seong-Yoon Kim, Chan-Hyeok Park, Yu-Jeong Min, Heon-Cheol Shin</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card medium" data-journal="Energy Storage Materials">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">3.0</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#7</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726003569?dgcid=rss_sd_all" target="_blank" rel="noopener">Integrated reactor based on concerted-divacancy engineering and optimized orbital hybridization for shuttle blocking and catalytic conversion in <b>lithium-sulfur</b> batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 15 May 2026 Source:  Author(s): Mengyao Xu, Qizhen Zhu, Yanze Li, Haonan Cui, Yong Yang, Bin Xu, Ning Sun</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#8</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X2602205X?dgcid=rss_sd_all" target="_blank" rel="noopener">Understanding the performance of lithium-ion capacitors under slow charge conditions: An interplay between power, energy and cycle life</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): S.E.M. Pourhosseini, Alexey M. Glushenkov, Thrinathreddy Ramireddy</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#9</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X26023248?dgcid=rss_sd_all" target="_blank" rel="noopener">Understanding the role of mass transport kinetic on reversible and irreversible capacity losses in <b>lithium</b> sulfur batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Tommaso Filippo Lupatelli, Massimo Santarelli, Silvia Bodoardo, Daniele Versaci</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#10</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X26023121?dgcid=rss_sd_all" target="_blank" rel="noopener">A physics-informed ground-space collaborative framework for the joint estimation of state of health and remaining useful life of satellite lithium-ion batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Zhengxuan Yan, Xiaodong Han, Dengfeng Zhang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Cell Reports Physical Science">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#11</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2666386426001852?dgcid=rss_sd_all" target="_blank" rel="noopener">How to design a zero-degradation battery by compensating for loss of <b>lithium</b> inventory in LFP cells with LFO additives</a></div>
+            <div class="card-meta">
+              <span class="jtag">Cell Reports Physical Science</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 30 April 2026 Source:  Author(s): Sunil Kumar Rawat, Simon E.J. O’Kane, Ruihe Li, Gregory James Offer, Monica Marinescu</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Power Sources">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">2.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#12</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0378775326011389?dgcid=rss_sd_all" target="_blank" rel="noopener">Effects of pulsating charging to obtain dense <b>lithium</b> metal anodes</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Power Sources</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 682 Author(s): Penghao Zhang, Xianglin Li, Peng Bai</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Electrochimica Acta">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#13</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0013468626008534?dgcid=rss_sd_all" target="_blank" rel="noopener">Bioelectrical memory effects behind fractional-order transients emulating synaptic plasticity in brain-inspired electrochemical dendrites</a></div>
+            <div class="card-meta">
+              <span class="jtag">Electrochimica Acta</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 20 September 2026 Source: , Volume 571 Author(s): Antoine Baron, Sébastien Pecqueur, Enrique H. Balaguera</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Chemistry">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.9</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#14</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2095495626002597?dgcid=rss_sd_all" target="_blank" rel="noopener">Breaking SEI-CEI feedback loops by separator-driven <b>interphase</b> engineering in high-voltage Li metal batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Chemistry</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: August 2026 Source: , Volume 119 Author(s): Juyeon Han, Subeen Park, Eunha Seo, Junyeong Lee, Sungjin Jo, Jaewan Park, Yu-Jin Han, Jeeyoung Yoo</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#15</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X26023443?dgcid=rss_sd_all" target="_blank" rel="noopener">Development and investigation of a high melting point binary <b>sodium</b> salt based composite phase change thermal energy storage material by an ultra-low sintering temperature with cold sintering technique</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Guofeng Wei, Dehao Xiu, Yanping Du, Chuan Li, Geng Qiao, Qi Li</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#16</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X2602284X?dgcid=rss_sd_all" target="_blank" rel="noopener">Research on <b>safety</b> assessment methods for carbon fiber composite structural batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Chunzhi Du, Jing Zhou</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#17</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X26023170?dgcid=rss_sd_all" target="_blank" rel="noopener">Effects of interlayer distance on <b>thermal runaway</b> propagation in dual-layer LFP battery modules</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Jiateng Zhu, Jie Chen, Tianmin Yu, Zhitao Chen, Shengze Qin, Jingyue Zhang, Yan Wang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Chemistry">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.6</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#18</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2095495626002123?dgcid=rss_sd_all" target="_blank" rel="noopener">Multi-scale structural engineering and performance enhancement strategies toward advanced lignin-based supercapacitors</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Chemistry</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: July 2026 Source: , Volume 118 Author(s): Tong Lei, Huijie Wang, Runxian Wang, Farzad Seidi, Shangru Zhai, Chao Liu, Gaoyi Han, Huining Xiao</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of the American Chemical Society">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#19</div>
+            <div class="card-title"><a href="http://dx.doi.org/10.1021/jacs.6c01248" target="_blank" rel="noopener">[ASAP] Zwitterion-Modulated Quasi-Solid-State Polymer Electrolyte with Janus Interface toward Low-Temperature <b>Lithium</b> Metal Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of the American Chemical Society</span>
+              <span>Yulong He, Menghong Li, Hongzhe Ma, Zhaoying Wang, Qiguang He, Zhijian Wang, Bin Li, and Shubin Yang</span>
+              <span>May 15, 2026</span>
+              <span><a href="https://doi.org/10.1021/jacs.6c01248" target="_blank">10.1021/jacs.6c01248</a></span>
+            </div>
+            
+            <p class="abstract">DOI: 10.1021/jacs.6c01248</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Electrochimica Acta">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#20</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0013468626007760?dgcid=rss_sd_all" target="_blank" rel="noopener">A physics-informed dual-electrode equivalent circuit model for <b>lithium</b> iron phosphate battery cells</a></div>
+            <div class="card-meta">
+              <span class="jtag">Electrochimica Acta</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 19 April 2026 Source:  Author(s): Jonas A. Braun, David Schmider, Wolfgang G. Bessler</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Energy Storage Materials">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#21</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726003557?dgcid=rss_sd_all" target="_blank" rel="noopener">AI-Enabled Cross-Scale Modeling and Parameter Transfer for Lithium-Ion Batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 16 May 2026 Source:  Author(s): Yikai Hu, Yanfeng Xie, Liye Zhao, Xiayu Zhu, Wenjie Meng, Zhenwei Zhu, Xibang Chen, Jingyi Qiu, Hai Ming, Hao Zhang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Energy Storage Materials">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#22</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726002631?dgcid=rss_sd_all" target="_blank" rel="noopener">Molecular-level electrolyte design strategy enables wide-temperature performance for lithium-ion batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: May 2026 Source: , Volume 88 Author(s): Shuo Wang, Miaojia Peng, Jinliang Li, Jiaoyan Sang, Hao Tong, Yunrui Tian, Botian Liu, Jun-Fei Liang, Xiaobin Zhong</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Journal of Energy Storage">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.4</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#23</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2352152X26023480?dgcid=rss_sd_all" target="_blank" rel="noopener">Discharging power/voltage experimental conditions-based available energy estimation for optimized sizing and scheduled in grid systems and electric-powered transportations</a></div>
+            <div class="card-meta">
+              <span class="jtag">Journal of Energy Storage</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: 1 August 2026 Source: , Volume 168 Author(s): Seungyun Han, Woonki Na, Sein Oh, Jonghoon Kim</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
+      <article class="card low" data-journal="Nano Energy">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#24</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2211285526003046?dgcid=rss_sd_all" target="_blank" rel="noopener">Meta-weakly solvating electrolyte for high-voltage <b>sodium-ion</b> batteries</a></div>
+            <div class="card-meta">
+              <span class="jtag">Nano Energy</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: July 2026 Source: , Volume 154 Author(s): An L. Phan, Thuy-Dung Tran, Huong T.D. Nguyen, Khanh T. Nguyen, Yaobin Xu, Yuxin Yang, Kha Le, Thanh-Nhan Tran, Lin Ma, Brett Lucht, Tao Li, Phung M.L. Le</p>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+    
+  </main>
+
+  <aside class="sidebar">
+    <div class="sidebar-card" id="pastReportsCard" style="display:none; margin-bottom: 1rem;">
+      <div class="sidebar-title">
+        <span>Navigation</span>
+      </div>
+      <a href="../index.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
+        <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
+          <span style="color:#4f46e5;font-weight:700;pointer-events:none;">🏠</span>
+          <span style="color:#374151; pointer-events: none; font-weight: 600;">Home (Latest)</span>
+        </div>
+      </a>
+      <div id="dynamic-reports-list"></div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">
+        <span>Papers by journal</span>
+        <span class="clear-filter" id="clearBtn" onclick="filterJournal(null)">Clear</span>
+      </div>
+      <div style="max-height: 45vh; overflow-y: auto; padding-right: 0.2rem;">
+        
+        <div class="sj" onclick="filterJournal('ACS Applied Materials &amp; Interfaces')"><span style="color:#374151" class="j-name">ACS Applied Materials &amp; Interfaces</span><span>1</span></div>
+        
+        <div class="sj" onclick="filterJournal('Cell Reports Physical Science')"><span style="color:#374151" class="j-name">Cell Reports Physical Science</span><span>1</span></div>
+        
+        <div class="sj" onclick="filterJournal('Electrochimica Acta')"><span style="color:#374151" class="j-name">Electrochimica Acta</span><span>3</span></div>
+        
+        <div class="sj" onclick="filterJournal('Energy Storage Materials')"><span style="color:#374151" class="j-name">Energy Storage Materials</span><span>3</span></div>
+        
+        <div class="sj" onclick="filterJournal('Joule')"><span style="color:#374151" class="j-name">Joule</span><span>1</span></div>
+        
+        <div class="sj" onclick="filterJournal('Journal of Energy Chemistry')"><span style="color:#374151" class="j-name">Journal of Energy Chemistry</span><span>4</span></div>
+        
+        <div class="sj" onclick="filterJournal('Journal of Energy Storage')"><span style="color:#374151" class="j-name">Journal of Energy Storage</span><span>8</span></div>
+        
+        <div class="sj" onclick="filterJournal('Journal of Power Sources')"><span style="color:#374151" class="j-name">Journal of Power Sources</span><span>1</span></div>
+        
+        <div class="sj" onclick="filterJournal('Journal of the American Chemical Society')"><span style="color:#374151" class="j-name">Journal of the American Chemical Society</span><span>1</span></div>
+        
+        <div class="sj" onclick="filterJournal('Nano Energy')"><span style="color:#374151" class="j-name">Nano Energy</span><span>1</span></div>
+        
+      </div>
+    </div>
+  </aside>
+</div>
+
+<footer>Generated by Battery Paper Report Agent on 2026-05-17 09:48</footer>
+
+<script>
+function filterJournal(journal) {
+  const cards = document.querySelectorAll('.card');
+  const clearBtn = document.getElementById('clearBtn');
+  const listTitle = document.getElementById('listTitle');
+  
+  cards.forEach(card => {
+    if (!journal || card.dataset.journal === journal) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  if (journal) {
+    clearBtn.style.display = 'block';
+    if(listTitle) listTitle.innerHTML = `Showing papers from <b style="color:#4f46e5">${journal}</b>`;
+  } else {
+    clearBtn.style.display = 'none';
+    if(listTitle) listTitle.textContent = 'All Papers — Ranked by Relevance';
+  }
+}
+</script>
+
+<script src="sidebar.js"></script>
+<script>
+  const listContainer = document.getElementById('dynamic-reports-list');
+  const pastReportsCard = document.getElementById('pastReportsCard');
+  if (typeof ALL_REPORTS !== 'undefined' && listContainer) {
+    if (ALL_REPORTS.length > 0) pastReportsCard.style.display = 'block';
+    let count = 0;
+    for (const pr of ALL_REPORTS) {
+      if (count >= 10) break;
+      if (pr === '2026-05-17') continue;
+      
+      const a = document.createElement('a');
+      a.style.cssText = "text-decoration:none; display: block;";
+      a.href = "" + pr + ".html";
+      a.innerHTML = `
+        <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
+          <span style="color:#4f46e5;font-weight:700;pointer-events:none;">🗓</span>
+          <span style="color:#374151; pointer-events: none; font-weight: 600;">${pr}</span>
+        </div>
+      `;
+      listContainer.appendChild(a);
+      count++;
+    }
+  }
+</script>
+
+</body>
+</html>
