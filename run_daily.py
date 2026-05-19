@@ -13,9 +13,9 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-import json, logging, re, sqlite3, ssl, time, urllib.request, webbrowser
+import json, logging, re, sqlite3, time, webbrowser, os, math
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -24,16 +24,10 @@ import feedparser, yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from Levenshtein import ratio as lev_ratio
 
-# ── SSL fix (handles "missing authority key identifier" on older systems) ─────
 try:
-    import certifi
-    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
-except Exception:
-    _SSL_CTX = ssl.create_default_context()
-
-_SSL_CTX_UNVERIFIED = ssl.create_default_context()
-_SSL_CTX_UNVERIFIED.check_hostname = False
-_SSL_CTX_UNVERIFIED.verify_mode   = ssl.CERT_NONE
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO,
@@ -42,7 +36,15 @@ logging.basicConfig(level=logging.INFO,
 log = logging.getLogger("agent")
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-ROOT        = Path(__file__).parent
+try:
+    _file_path = __file__
+except NameError:
+    _file_path = 'fakepyfile'
+
+if 'fakepyfile' in _file_path or _file_path == '<string>':
+    ROOT = Path.cwd()
+else:
+    ROOT = Path(_file_path).parent
 DB_PATH     = ROOT / "data" / "papers.db"
 OUT_DIR     = ROOT / "out"
 TEMPLATE    = ROOT / "template.html"
@@ -101,25 +103,6 @@ def _extract_abstract(entry) -> Optional[str]:
         if text: return text
     return None
 
-def _fetch_feed(url: str) -> feedparser.FeedParserDict:
-    """Fetch with certifi SSL, fall back to unverified on cert errors."""
-    headers = {"User-Agent": "BatteryPaperAgent/1.0"}
-    for ctx, label in ((_SSL_CTX, "verified"), (_SSL_CTX_UNVERIFIED, "unverified")):
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
-                data = resp.read()
-            if label == "unverified":
-                log.warning("    SSL cert unverified for %s (certificate issue on this machine)", url)
-            return feedparser.parse(data)
-        except ssl.SSLError as e:
-            log.warning("    SSL error (%s), retrying without verification: %s", label, e)
-            continue
-        except Exception as e:
-            raise
-    return feedparser.parse("")  # empty result if both fail
-
-
 def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
     enabled = [j for j in journals if j.get("enabled", True)]
     log.info("Fetching from %d journals...", len(enabled))
@@ -128,7 +111,7 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
         name, url = j.get("name","?"), j.get("url","")
         log.info("  [%d/%d] %s", i+1, len(enabled), name)
         try:
-            feed = _fetch_feed(url)
+            feed = feedparser.parse(url, request_headers={"User-Agent":"BatteryPaperAgent/1.0"})
         except Exception as e:
             log.warning("    Error: %s", e); continue
         if feed.get("bozo") and not feed.entries:
@@ -137,9 +120,17 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
             title = (getattr(e,"title","") or "").strip()
             link  = (getattr(e,"link","")  or "").strip()
             if not title or not link: continue
+            
+            abstract = _extract_abstract(e)
+            # Abstract may be missing in many RSS feeds; we keep it as None and handle gracefully later.
+            if abstract:
+                # Strip the journal name itself so we don't get fake hits (e.g. from "Energy Storage Materials")
+                abstract = re.sub(rf"(?i)\b{re.escape(name)}\b", "", abstract).strip()
+                abstract = re.sub(r"^[,\-\.\s]+", "", abstract)
+
             papers.append(Paper(title=title, journal=name, url=link,
                                 doi=_extract_doi(e), authors=_extract_authors(e),
-                                abstract=_extract_abstract(e), published=_parse_date(e)))
+                                abstract=abstract, published=_parse_date(e)))
         log.info("    -> %d papers", len([p for p in papers if p.journal == name]))
         if i < len(enabled)-1: time.sleep(delay)
     log.info("Total fetched: %d", len(papers))
@@ -201,35 +192,147 @@ _DASH = str.maketrans({"\u2013":"-","\u2014":"-","\u2012":"-",
 def _norm(s: str) -> str:
     return s.lower().translate(_DASH)
 
+
 def score_all(papers: list[Paper]) -> list[Paper]:
+    """Score papers based on keyword occurrences.
+
+    Each keyword hit adds points based on its configured weight.
+    An optional impact‑factor boost (log10 of the journal impact factor) is added.
+    The final score is capped at 10.0.
+    """
     if not KEYWORDS.exists():
-        log.warning("keywords.json not found — scoring disabled."); return papers
+        log.warning("keywords.json not found — scoring disabled.")
+        return papers
     data = json.loads(KEYWORDS.read_text(encoding="utf-8"))
-    kws = data.get("keywords", data) if isinstance(data, dict) else {}
-    if not kws: return papers
 
-    max_possible = sum(w * 2 for w in kws.values())
-    sorted_kws = sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True)
-    for p in papers:
-        tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
-        raw = 0
-        for k, w in sorted_kws:
-            nk = _norm(k)
-            if nk in tt:
-                raw += w * 2
-                tt = tt.replace(nk, " ")
-            elif nk in ta:
-                raw += w
-                ta = ta.replace(nk, " ")
-        p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+    if_path = ROOT / "data" / "impact_factors.json"
+    ifs = json.loads(if_path.read_text(encoding="utf-8")) if if_path.exists() else {}
 
-    high = sum(1 for p in papers if p.score >= 5)
+    def _highlight(text: str, kws: set) -> str:
+        """Wrap keyword occurrences in <mark> tags for visual highlighting."""
+        if not text or not kws:
+            return text
+        # Sort longer keywords first to avoid partial overlaps
+        for kw in sorted(kws, key=len, reverse=True):
+            esc = re.escape(kw)
+            # Case‑insensitive whole‑word match
+            text = re.sub(rf"(?i)(?<![\w-])({esc})(?![\w-])", r"<mark>\1</mark>", text)
+        return text
+
+    # Support both new 'concepts' format and old 'keywords' format
+    if "concepts" in data:
+        concepts = data["concepts"]
+        max_possible = sum(c.get("weight", 0) * 2 for c in concepts.values())
+        
+        for p in papers:
+            tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
+            raw = 0
+            hits = set()
+            for c_name, c_data in concepts.items():
+                w = c_data.get("weight", 0)
+                kws = sorted(c_data.get("keywords", []), key=lambda x: len(_norm(x)), reverse=True)
+                
+                hit_title = False
+                for k in kws:
+                    nk = _norm(k)
+                    if nk in tt:
+                        raw += w * 2
+                        tt = tt.replace(nk, " ")
+                        hits.add(k)
+                        hit_title = True
+                        break # Only count concept once
+                
+                if hit_title:
+                    continue
+                
+                for k in kws:
+                    nk = _norm(k)
+                    if nk in ta:
+                        raw += w
+                        ta = ta.replace(nk, " ")
+                        hits.add(k)
+                        break # Only count concept once
+            
+            p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+            if p.score > 0.0:
+                jname = (p.journal or "").lower().strip()
+                j_score = ifs.get(jname, 0.0)
+                if j_score > 1.0:
+                    p.score = round(min(10.0, p.score + math.log10(j_score)), 1)
+
+            if p.abstract and len(p.abstract) > 600:
+                p.abstract = p.abstract[:600] + "…"
+            p.title = _highlight(p.title, hits)
+            p.abstract = _highlight(p.abstract, hits)
+
+    else:
+        # Fallback to old format
+        kws = data.get("keywords", data) if isinstance(data, dict) else {}
+        if not kws: return papers
+        max_possible = sum(w * 2 for w in kws.values())
+        sorted_kws = sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True)
+        for p in papers:
+            tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
+            raw = 0
+            hits = set()
+            for k, w in sorted_kws:
+                nk = _norm(k)
+                if nk in tt:
+                    raw += w * 2
+                    tt = tt.replace(nk, " ")
+                    hits.add(k)
+                elif nk in ta:
+                    raw += w
+                    ta = ta.replace(nk, " ")
+                    hits.add(k)
+            p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
+            if p.score > 0.0:
+                jname = (p.journal or "").lower().strip()
+                j_score = ifs.get(jname, 0.0)
+                if j_score > 1.0:
+                    p.score = round(min(10.0, p.score + math.log10(j_score)), 1)
+
+            if p.abstract and len(p.abstract) > 600:
+                p.abstract = p.abstract[:600] + "…"
+            p.title = _highlight(p.title, hits)
+            p.abstract = _highlight(p.abstract, hits)
+
+    high = sum(1 for p in papers if p.score >= 5.0)
     log.info("Scored %d papers (%d with score >= 5.0)", len(papers), high)
     return papers
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # REPORT
 # ═══════════════════════════════════════════════════════════════════════════════
+def analyze_papers_with_ai(papers: list[Paper]) -> Optional[str]:
+    if genai is None: return None
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key: return None
+    
+    log.info("Generating AI summary using Gemini...")
+    genai.configure(api_key=api_key)
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        top_papers = sorted(papers, key=lambda p: p.score, reverse=True)[:15]
+        if not top_papers:
+            return None
+            
+        prompt = "You are an expert battery materials scientist. Given the following list of newly published battery papers, downselect the top 3-5 most highly relevant papers with a focus on solid-state batteries, sulfide electrolytes, argyrodites, stack pressure, lithium-metal, and lithium-sulfur.\n\nProvide your analysis as a direct HTML snippet (e.g. <ul><li style='margin-bottom:10px;'><strong>Title</strong> - explanation</li>...</ul>) that is ready to be injected into a webpage. Do not wrap it in a markdown block, and do not include the <html> or <body> tags. Keep it very concise and professional.\n\n"
+        
+        for i, p in enumerate(top_papers):
+            clean_title = re.sub(r'<[^>]+>', '', p.title)
+            clean_abstract = re.sub(r'<[^>]+>', '', p.abstract) if p.abstract else "No abstract"
+            prompt += f"{i+1}. {clean_title} (Journal: {p.journal}, Score: {p.score})\nAbstract: {clean_abstract[:400]}...\n\n"
+            
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```[a-zA-Z]*\n|```$", "", text).strip()
+        return text
+    except Exception as e:
+        log.warning("AI generation failed: %s", e)
+        return None
 def _fmt_date(dt: Optional[datetime]) -> str:
     return dt.strftime("%b %d, %Y") if dt else "Unknown date"
 
@@ -238,36 +341,150 @@ def generate_report(papers: list[Paper]) -> Path:
     date_str = date.strftime("%Y-%m-%d")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     html_path = OUT_DIR / f"{date_str}.html"
+    json_path = OUT_DIR / f"{date_str}.json"
+
+    # --- Load & Merge with Daily Cache ---
+    existing = {}
+    if json_path.exists():
+        try:
+            for item in json.loads(json_path.read_text(encoding="utf-8")):
+                p = Paper(**item)
+                if isinstance(p.published, str):
+                    try: p.published = datetime.fromisoformat(p.published)
+                    except: p.published = None
+                existing[p.url] = p
+        except Exception as e:
+            log.warning("Could not load daily json cache: %s", e)
+
+    for p in papers:
+        existing[p.url] = p
+
+    papers = list(existing.values())
+    
+    def json_default(obj):
+        if isinstance(obj, datetime): return obj.isoformat()
+        raise TypeError(f"Not serializable: {type(obj)}")
+
+    try:
+        json_path.write_text(json.dumps([asdict(p) for p in papers], default=json_default, indent=2), encoding="utf-8")
+    except Exception as e:
+        log.warning("Could not save daily json cache: %s", e)
+    # ---------------------------------------
+    past_reports = sorted([f.stem for f in OUT_DIR.glob("*.html") if "index" not in f.name and re.match(r"\d{4}-\d{2}-\d{2}", f.stem)], reverse=True)
+    all_reports = sorted(list(set(past_reports + [date_str])), reverse=True)
+    
+    # Write a dynamic JS file so old static reports can dynamically fetch the latest sidebar
+    (OUT_DIR / "sidebar.js").write_text(f"const ALL_REPORTS = {json.dumps(all_reports)};", encoding="utf-8")
 
     sorted_papers = sorted(papers, key=lambda p: p.score, reverse=True)
     journal_counts = {}
     for p in papers:
         journal_counts[p.journal] = journal_counts.get(p.journal, 0) + 1
 
+    # --- Generate AI Summary ---
+    ai_summary = analyze_papers_with_ai(papers)
+
     env = Environment(loader=FileSystemLoader(str(ROOT)),
                       autoescape=select_autoescape(["html"]))
     env.filters["fmt_date"] = _fmt_date
 
     tmpl = env.get_template("template.html")
-    html = tmpl.render(date=date, date_str=date_str,
+    html_out = tmpl.render(date=date, date_str=date_str,
                        papers=sorted_papers,
                        journal_counts=dict(sorted(journal_counts.items())),
-                       total=len(papers))
-    html_path.write_text(html, encoding="utf-8")
-    log.info("Report: %s", html_path)
+                       total=len(papers), ai_summary=ai_summary,
+                       past_reports=past_reports, is_index=False)
+                       
+    html_index = tmpl.render(date=date, date_str=date_str,
+                       papers=sorted_papers,
+                       journal_counts=dict(sorted(journal_counts.items())),
+                       total=len(papers), ai_summary=ai_summary,
+                       past_reports=past_reports, is_index=True)
+
+    html_path.write_text(html_out, encoding="utf-8")
+    
+    # Also save as index.html for web hosting (e.g., GitHub Pages)
+    index_path = ROOT / "index.html"
+    index_path.write_text(html_index, encoding="utf-8")
+    
+    log.info("Report: %s (and index.html)", html_path)
     return html_path
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 def main():
-    print("=" * 50)
-    print("  Battery Paper Report Agent")
-    print("=" * 50)
-
-    # Load config
+    """Main entry point for the daily report.
+    Loads configuration, fetches papers, applies filtering, scoring, and generates the HTML report.
+    """
+    # Load journal config
     if not JOURNALS.exists():
         print("[ERROR] config/journals.yaml not found."); sys.exit(1)
+    journals = yaml.safe_load(JOURNALS.read_text(encoding="utf-8")).get("journals", [])
+
+    # Load optional report-specific config (overrides defaults)
+    report_cfg_path = ROOT / "config" / "report_config.json"
+    if report_cfg_path.exists():
+        rcfg = json.loads(report_cfg_path.read_text(encoding="utf-8"))
+    else:
+        rcfg = {}
+    # Defaults: keep top 20 papers with score >= 1.0
+    max_age = rcfg.get("max_age_days", 30)
+    min_score = rcfg.get("min_score", 1.0)
+    top_n = rcfg.get("top_n", 20)
+
+    # Optional title‑exclusion filter from filters.yaml
+    exclude = []
+    if FILTERS.exists():
+        filters_yaml = yaml.safe_load(FILTERS.read_text(encoding="utf-8"))
+        exclude = [t.lower() for t in filters_yaml.get("exclusion", {}).get("exclude_if_title_contains", [])]
+
+    # Fetch papers
+    papers = fetch_all(journals)
+    if not papers:
+        print("[WARN] No papers fetched."); sys.exit(0)
+
+    # Title exclusion filter
+    if exclude:
+        before = len(papers)
+        papers = [p for p in papers if not any(e in p.title.lower() for e in exclude)]
+        log.info("Title filter: removed %d papers.", before - len(papers))
+
+    # Deduplicate (keep recent 30‑day window)
+    papers = deduplicate(papers, max_age_days=max_age)
+    if not papers:
+        print("[WARN] No new papers after dedup."); sys.exit(0)
+
+    # Score papers
+    papers = score_all(papers)
+
+    # Apply minimum score filter
+    if min_score > 0:
+        before = len(papers)
+        papers = [p for p in papers if p.score >= min_score]
+        log.info("Score filter: dropped %d off‑topic papers. %d remain.", before - len(papers), len(papers))
+    if not papers:
+        print("[WARN] No papers above minimum_score threshold."); sys.exit(0)
+
+    # Keep only top N papers (default 20)
+    if top_n > 0 and len(papers) > top_n:
+        papers = sorted(papers, key=lambda p: p.score, reverse=True)[:top_n]
+        log.info("Kept top %d papers.", top_n)
+
+    # Generate the HTML report (ai_summary is handled inside generate_report)
+    html_path = generate_report(papers)
+
+    print(f"\n[OK] {len(papers)} papers | Report: {html_path}\n")
+
+    # Open in default browser
+    try:
+        webbrowser.open(html_path.as_uri())
+    except Exception as e:
+        log.warning("Could not open browser: %s", e)
+
+    print("Done!")
+
+if __name__ == "__main__":
     journals = yaml.safe_load(JOURNALS.read_text(encoding="utf-8")).get("journals", [])
     filters  = yaml.safe_load(FILTERS.read_text(encoding="utf-8")).get("exclusion", {}) \
                if FILTERS.exists() else {}
@@ -323,5 +540,4 @@ def main():
 
     print("Done!")
 
-if __name__ == "__main__":
-    main()
+
