@@ -36,22 +36,16 @@
 
     /* ── Header ── */
     header {
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-      padding: 2.5rem 2rem;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      background: #ffffff;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 1.5rem 2rem;
     }
     .hi { max-width: 1000px; margin: 0 auto; }
     header h1 { 
-      font-size: 2.2rem; font-weight: 800; 
+      font-size: 1.6rem; font-weight: 800; 
       background: linear-gradient(135deg, #2563eb, #7c3aed); 
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-      margin-bottom: .4rem; letter-spacing: -0.02em; 
+      margin-bottom: .2rem; letter-spacing: -0.02em; 
     }
     header .sub { font-size: 1rem; color: var(--text-muted); margin-bottom: 1.2rem; font-weight: 500; }
     .pills { display: flex; flex-wrap: wrap; gap: .6rem; }
@@ -69,10 +63,10 @@
     @media(max-width: 768px) { .page { grid-template-columns: 1fr; } .sidebar { display: none; } }
 
     /* ── Sidebar ── */
-    .sidebar { position: sticky; top: 12rem; }
+    .sidebar { position: sticky; top: 1.5rem; }
     .sidebar-card { 
-      background: rgba(255,255,255,0.6); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.5); border-radius: 12px; padding: 1.2rem; 
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.05); border-radius: 12px; padding: 1.2rem; 
       box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 1.5rem;
     }
     .sidebar-title { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .8rem; display: flex; justify-content: space-between; align-items: center; }
@@ -94,8 +88,8 @@
     .list { display: flex; flex-direction: column; gap: 1.2rem; }
 
     .card {
-      background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.6); border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.05); border-radius: 16px;
       padding: 1.5rem; position: relative; overflow: hidden;
       box-shadow: 0 4px 15px rgba(0,0,0,0.02);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -153,8 +147,8 @@
 
     /* ── AI Summary Box ── */
     .ai-box {
-      background: linear-gradient(135deg, rgba(238,242,255,0.7) 0%, rgba(224,231,255,0.7) 100%);
-      backdrop-filter: blur(12px); border: 1px solid rgba(199,210,254,0.6);
+      background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+      border: 1px solid rgba(199,210,254,0.6);
       border-radius: 16px; padding: 1.5rem 1.8rem; margin-bottom: 2.5rem;
       box-shadow: 0 10px 25px -5px rgba(79,70,229,0.1); position: relative;
     }
