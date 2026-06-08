@@ -145,22 +145,7 @@
     .abstract { font-size: .9rem; color: #475569; line-height: 1.7; }
     mark { background-color: rgba(250, 204, 21, 0.4); color: #000; padding: 0.1em 0.3em; border-radius: 4px; font-weight: 600; box-shadow: 0 1px 2px rgba(250,204,21,0.2); }
 
-    /* ── AI Summary Box ── */
-    .ai-box {
-      background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-      border: 1px solid rgba(199,210,254,0.6);
-      border-radius: 16px; padding: 1.5rem 1.8rem; margin-bottom: 2.5rem;
-      box-shadow: 0 10px 25px -5px rgba(79,70,229,0.1); position: relative;
-    }
-    .ai-box::before {
-      content: '✨ AI Insights & Top Picks'; display: inline-block; font-size: 0.85rem; font-weight: 700;
-      letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary); margin-bottom: 1rem;
-      background: #fff; padding: 0.3rem 0.8rem; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .ai-box div { font-size: 0.95rem; line-height: 1.7; color: #334155; }
-    .ai-box ul { margin-left: 1.2rem; margin-top: 0.5rem; }
-    .ai-box li { margin-bottom: 0.8rem; }
-    
+
     /* ── Footer ── */
     footer { text-align: center; padding: 2rem; font-size: .8rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 2rem;}
 
@@ -170,12 +155,18 @@
 <body>
 
 <header>
-  <div class="hi">
-    <h1>Battery Paper Report</h1>
-    <p class="sub">Monday, June 08, 2026 &nbsp;·&nbsp; Sorted by relevance score</p>
-    <div class="pills">
-      <span class="pill"><strong>26</strong>&nbsp;papers</span>
-      <span class="pill"><strong>9</strong>&nbsp;journals</span>
+  <div class="hi" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1>Battery Paper Report</h1>
+      <p class="sub">Monday, June 08, 2026 &nbsp;·&nbsp; Sorted by relevance score</p>
+      <div class="pills" id="headerPills">
+        <span class="pill"><strong>28</strong>&nbsp;papers</span>
+        <span class="pill"><strong>9</strong>&nbsp;journals</span>
+      </div>
+    </div>
+    <div class="search-container" style="flex: 1; min-width: 280px; max-width: 400px; position: relative; margin-top: 0.5rem;">
+      <input type="text" id="globalSearch" placeholder="Search all historical reports..." style="width: 100%; padding: 0.8rem 1.2rem; border-radius: 20px; border: 1px solid var(--border); font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);" oninput="debounceSearch(this.value)" />
+      <span id="searchLoader" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--primary); display: none;">⏳</span>
     </div>
   </div>
 </header>
@@ -183,7 +174,7 @@
 <div class="page">
   <main>
     
-    
+
 
     <div class="section-title" id="listTitle">All Papers — Ranked by Relevance</div>
     <div class="list">
@@ -690,6 +681,30 @@ Yaochun Yao</span>
       
       
       
+      <article class="card low" data-journal="Energy Storage Materials">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">1.5</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#20</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726004253?dgcid=rss_sd_all" target="_blank" rel="noopener">Overcoming Secondary Thermal Damage in Spent LiFePO<sub>4</sub> Regeneration via Interface-Selective <mark>Lithium</mark> Anchoring</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 7 June 2026 Source:  Author(s): Xuan Cao, Wei Mao, Jingnan Yuan, Shaochun Tang</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
       <article class="card low" data-journal="Electrochimica Acta">
         <div class="card-top">
           <div class="score-badge">
@@ -697,7 +712,7 @@ Yaochun Yao</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#20</div>
+            <div class="rank">#21</div>
             <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S0013468626011916?dgcid=rss_sd_all" target="_blank" rel="noopener">Synergistic Integration of Medium-Entropy Sulfide in MOF-Derived TiO<sub>2</sub>/C Nanocubes for Enhanced <mark>Sodium</mark> Storage</a></div>
             <div class="card-meta">
               <span class="jtag">Electrochimica Acta</span>
@@ -721,7 +736,7 @@ Yaochun Yao</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#21</div>
+            <div class="rank">#22</div>
             <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.76424?af=R" target="_blank" rel="noopener">Joule Heating Triggered Interfacial Engineering of Biomass Hard Carbon for High‐Performance Sodium‐Ion Batteries</a></div>
             <div class="card-meta">
               <span class="jtag">Advanced Functional Materials</span>
@@ -754,7 +769,7 @@ Kang Sun</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#22</div>
+            <div class="rank">#23</div>
             <div class="card-title"><a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.76436?af=R" target="_blank" rel="noopener">Hierarchical MXene‐Derived NTP/C Nanohybrids for Cryogenic Sodium‐Ion Batteries</a></div>
             <div class="card-meta">
               <span class="jtag">Advanced Functional Materials</span>
@@ -783,7 +798,7 @@ Vilas G. Pol</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#23</div>
+            <div class="rank">#24</div>
             <div class="card-title"><a href="https://onlinelibrary.wiley.com/doi/10.1002/smll.73638?af=R" target="_blank" rel="noopener">Progress of Non‐Aqueous Liquid Electrolytes for High‐Voltage Sodium‐Ion Batteries</a></div>
             <div class="card-meta">
               <span class="jtag">Small</span>
@@ -817,7 +832,7 @@ Yubo Luo</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#24</div>
+            <div class="rank">#25</div>
             <div class="card-title"><a href="https://onlinelibrary.wiley.com/doi/10.1002/smll.74070?af=R" target="_blank" rel="noopener">Mechanistic Insights into Oxygen Release from Layered Oxide Cathodes for Reliable Sodium‐Ion Batteries</a></div>
             <div class="card-meta">
               <span class="jtag">Small</span>
@@ -852,7 +867,7 @@ Takashi Nakamura</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#25</div>
+            <div class="rank">#26</div>
             <div class="card-title"><a href="https://onlinelibrary.wiley.com/doi/10.1002/smll.74109?af=R" target="_blank" rel="noopener">Flexible Multifunctional Composite Phase Change Materials for Enhanced Thermal <mark>Safety</mark> of Battery Energy Storage Systems</a></div>
             <div class="card-meta">
               <span class="jtag">Small</span>
@@ -881,6 +896,30 @@ Xinxi Li</span>
       
       
       
+      <article class="card low" data-journal="Energy Storage Materials">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">0.7</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#27</div>
+            <div class="card-title"><a href="https://www.sciencedirect.com/science/article/pii/S2405829726004265?dgcid=rss_sd_all" target="_blank" rel="noopener">Orbital-Modulation-induced Charge Redistribution Enables High-Rate and Low-Temperature O3-Type <mark>Sodium</mark> Cathodes</a></div>
+            <div class="card-meta">
+              <span class="jtag">Energy Storage Materials</span>
+              
+              
+              
+            </div>
+            
+            <p class="abstract">Publication date: Available online 7 June 2026 Source:  Author(s): Liang Deng, Shengwei Dong, Linfeng Shi, Anran Shi, Yanbing Ning, Kun Lin, Yuqi Dong, Yan Zhang, Menghui He, Wanxia Huang, Shuaifeng Lou</p>
+            
+          </div>
+        </div>
+      </article>
+      
+      
+      
       <article class="card low" data-journal="Journal of The Electrochemical Society">
         <div class="card-top">
           <div class="score-badge">
@@ -888,7 +927,7 @@ Xinxi Li</span>
             <span class="l">score</span>
           </div>
           <div class="card-body">
-            <div class="rank">#26</div>
+            <div class="rank">#28</div>
             <div class="card-title"><a href="https://iopscience.iop.org/article/10.1149/1945-7111/ae7477" target="_blank" rel="noopener">Feasibility Validation and Impact Analysis of Mass Fraction for PDMS-Based Fluorine-Free Microporous Layers</a></div>
             <div class="card-meta">
               <span class="jtag">Journal of The Electrochemical Society</span>
@@ -918,8 +957,10 @@ Xinxi Li</span>
           <span style="color:#374151; pointer-events: none; font-weight: 600;">Home (Latest)</span>
         </div>
       </a>
-      <div id="dynamic-reports-list"></div>
+      <div id="dynamic-reports-list" style="max-height: 45vh; overflow-y: auto; padding-right: 0.2rem;"></div>
     </div>
+
+    
 
     <div class="sidebar-card">
       <div class="sidebar-title">
@@ -936,7 +977,7 @@ Xinxi Li</span>
         
         <div class="sj" onclick="filterJournal('Electrochimica Acta')"><span style="color:#374151" class="j-name">Electrochimica Acta</span><span>4</span></div>
         
-        <div class="sj" onclick="filterJournal('Energy Storage Materials')"><span style="color:#374151" class="j-name">Energy Storage Materials</span><span>4</span></div>
+        <div class="sj" onclick="filterJournal('Energy Storage Materials')"><span style="color:#374151" class="j-name">Energy Storage Materials</span><span>6</span></div>
         
         <div class="sj" onclick="filterJournal('Journal of Energy Storage')"><span style="color:#374151" class="j-name">Journal of Energy Storage</span><span>2</span></div>
         
@@ -951,7 +992,7 @@ Xinxi Li</span>
   </aside>
 </div>
 
-<footer>Generated by Battery Paper Report Agent on 2026-06-08 12:35</footer>
+<footer>Generated by Battery Paper Report Agent on 2026-06-08 16:47</footer>
 
 <script>
 function filterJournal(journal) {
@@ -983,11 +1024,8 @@ function filterJournal(journal) {
   const pastReportsCard = document.getElementById('pastReportsCard');
   if (typeof ALL_REPORTS !== 'undefined' && listContainer) {
     if (ALL_REPORTS.length > 0) pastReportsCard.style.display = 'block';
-    let count = 0;
     for (const pr of ALL_REPORTS) {
-      if (count >= 10) break;
       if (pr === '2026-06-08') continue;
-      
       const a = document.createElement('a');
       a.style.cssText = "text-decoration:none; display: block;";
       a.href = "" + pr + ".html";
@@ -998,8 +1036,125 @@ function filterJournal(journal) {
         </div>
       `;
       listContainer.appendChild(a);
-      count++;
     }
+  }
+
+  // --- Global Search Logic ---
+  let searchTimeout = null;
+  let originalListHtml = '';
+  let originalTitleHtml = '';
+  
+  // Wait for DOM
+  document.addEventListener('DOMContentLoaded', () => {
+    const listEl = document.querySelector('.list');
+    const titleEl = document.getElementById('listTitle');
+    if(listEl) originalListHtml = listEl.innerHTML;
+    if(titleEl) originalTitleHtml = titleEl.innerHTML;
+  });
+  
+  async function debounceSearch(query) {
+    clearTimeout(searchTimeout);
+    const loader = document.getElementById('searchLoader');
+    if (query.trim().length < 2) {
+      loader.style.display = 'none';
+      if(document.getElementById('emptyState')) document.getElementById('emptyState').style.display = 'block';
+      const listEl = document.querySelector('.list');
+      const titleEl = document.getElementById('listTitle');
+      if(listEl) listEl.innerHTML = originalListHtml;
+      if(titleEl && !document.getElementById('emptyState')) titleEl.innerHTML = originalTitleHtml;
+      if(titleEl && document.getElementById('emptyState')) titleEl.style.display = 'none';
+      if(document.getElementById('headerPills')) document.getElementById('headerPills').style.display = 'flex';
+      return;
+    }
+    loader.style.display = 'block';
+    searchTimeout = setTimeout(() => performSearch(query.trim().toLowerCase()), 500);
+  }
+
+  async function performSearch(query) {
+    if (typeof ALL_REPORTS === 'undefined') {
+      document.getElementById('searchLoader').style.display = 'none';
+      return;
+    }
+    const basePath = './';
+    
+    try {
+      let allPapers = [];
+      const res = await fetch(basePath + 'search_index.json').catch(() => null);
+      if (res && res.ok) {
+        allPapers = await res.json();
+      }
+      
+      const matched = allPapers.filter(p => {
+        if (p.title && p.title.toLowerCase().includes(query)) return true;
+        if (p.abstract && p.abstract.toLowerCase().includes(query)) return true;
+        if (p.authors && p.authors.some(a => a.toLowerCase().includes(query))) return true;
+        if (p.journal && p.journal.toLowerCase().includes(query)) return true;
+        return false;
+      });
+
+      // Deduplicate by URL
+      const uniqueMatched = [];
+      const seenUrls = new Set();
+      for(const p of matched) {
+        if(!seenUrls.has(p.url)) {
+          seenUrls.add(p.url);
+          uniqueMatched.push(p);
+        }
+      }
+
+      uniqueMatched.sort((a, b) => b.score - a.score);
+      renderSearchResults(uniqueMatched, query);
+    } catch(e) {
+      console.error(e);
+    }
+    document.getElementById('searchLoader').style.display = 'none';
+  }
+
+  function renderSearchResults(papers, query) {
+    if(document.getElementById('emptyState')) document.getElementById('emptyState').style.display = 'none';
+    if(document.getElementById('headerPills')) document.getElementById('headerPills').style.display = 'none';
+    
+    const titleEl = document.getElementById('listTitle');
+    if(titleEl) {
+      titleEl.style.display = 'flex';
+      titleEl.innerHTML = `Search Results for "<b style="color:#4f46e5">${query}</b>" (${papers.length} found)`;
+    }
+    
+    const list = document.querySelector('.list');
+    if(!list) return;
+
+    if (papers.length === 0) {
+      list.innerHTML = `<div class="empty" style="padding: 3rem 1rem;">No papers found matching "${query}".</div>`;
+      return;
+    }
+    
+    let html = '';
+    papers.forEach((p, idx) => {
+      const tier = p.score >= 7 ? 'high' : (p.score >= 3 ? 'medium' : 'low');
+      const authors = p.authors ? (p.authors.length > 3 ? p.authors.slice(0,3).join(", ") + " et al." : p.authors.join(", ")) : "";
+      
+      html += `
+      <article class="card ${tier}">
+        <div class="card-top">
+          <div class="score-badge">
+            <span class="v">${(p.score || 0).toFixed(1)}</span>
+            <span class="l">score</span>
+          </div>
+          <div class="card-body">
+            <div class="rank">#${idx + 1}</div>
+            <div class="card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title}</a></div>
+            <div class="card-meta">
+              <span class="jtag">${p.journal}</span>
+              ${p.report_date ? `<span style="color:#4f46e5;font-weight:600;">Report: ${p.report_date}</span>` : ''}
+              ${authors ? `<span>${authors}</span>` : ''}
+              ${p.published ? `<span>${typeof p.published === 'string' ? p.published.substring(0,10) : ''}</span>` : ''}
+              ${p.doi ? `<span><a href="https://doi.org/${p.doi}" target="_blank">${p.doi}</a></span>` : ''}
+            </div>
+          </div>
+        </div>
+      </article>`;
+    });
+    list.innerHTML = html;
   }
 </script>
 
