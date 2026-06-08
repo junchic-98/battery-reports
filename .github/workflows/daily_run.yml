@@ -1,7 +1,7 @@
 name: Daily Paper Report
 on:
   schedule:
-    - cron: '0 8 * * *' # Runs at 08:00 UTC daily
+    - cron: '23 6 * * *' # Runs at 06:23 UTC daily
   workflow_dispatch: # Allows manual run button
 
 permissions:
@@ -10,6 +10,8 @@ permissions:
 jobs:
   run-agent:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,6 +26,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Daily Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python run_daily.py
 
       - name: Commit and Push changes
