@@ -41,6 +41,10 @@ journals:
     url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=aamick"
     enabled: true
 
+  - name: "ACS Electrochemistry"
+    url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=aeclc7"
+    enabled: true
+
   - name: "Journal of the American Chemical Society"
     url: "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jacsat"
     enabled: true
