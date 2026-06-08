@@ -24,10 +24,7 @@ import feedparser, yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from Levenshtein import ratio as lev_ratio
 
-try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
+
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO,
@@ -304,36 +301,11 @@ def score_all(papers: list[Paper]) -> list[Paper]:
 # ═══════════════════════════════════════════════════════════════════════════════
 # REPORT
 # ═══════════════════════════════════════════════════════════════════════════════
-def analyze_papers_with_ai(papers: list[Paper]) -> Optional[str]:
-    if genai is None: return None
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key: return None
-    
-    log.info("Generating AI summary using Gemini...")
-    genai.configure(api_key=api_key)
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
-        top_papers = sorted(papers, key=lambda p: p.score, reverse=True)[:15]
-        if not top_papers:
-            return None
-            
-        prompt = "You are an expert battery materials scientist. Given the following list of newly published battery papers, downselect the top 3-5 most highly relevant papers with a focus on solid-state batteries, sulfide electrolytes, argyrodites, stack pressure, lithium-metal, and lithium-sulfur.\n\nProvide your analysis as a direct HTML snippet (e.g. <ul><li style='margin-bottom:10px;'><strong>Title</strong> - explanation</li>...</ul>) that is ready to be injected into a webpage. Do not wrap it in a markdown block, and do not include the <html> or <body> tags. Keep it very concise and professional.\n\n"
-        
-        for i, p in enumerate(top_papers):
-            clean_title = re.sub(r'<[^>]+>', '', p.title)
-            clean_abstract = re.sub(r'<[^>]+>', '', p.abstract) if p.abstract else "No abstract"
-            prompt += f"{i+1}. {clean_title} (Journal: {p.journal}, Score: {p.score})\nAbstract: {clean_abstract[:400]}...\n\n"
-            
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        if text.startswith("```"):
-            text = re.sub(r"^```[a-zA-Z]*\n|```$", "", text).strip()
-        return text
-    except Exception as e:
-        log.warning("AI generation failed: %s", e)
-        return None
-def _fmt_date(dt: Optional[datetime]) -> str:
+
+def _fmt_date(dt) -> str:
+    if isinstance(dt, str):
+        try: dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except: return dt
     return dt.strftime("%b %d, %Y") if dt else "Unknown date"
 
 def generate_report(papers: list[Paper]) -> Path:
@@ -376,13 +348,73 @@ def generate_report(papers: list[Paper]) -> Path:
     # Write a dynamic JS file so old static reports can dynamically fetch the latest sidebar
     (OUT_DIR / "sidebar.js").write_text(f"const ALL_REPORTS = {json.dumps(all_reports)};", encoding="utf-8")
 
+    # 1) Generate search_index.json
+    search_index = []
+    for report_date in all_reports:
+        fpath = OUT_DIR / f"{report_date}.json"
+        if fpath.exists():
+            try:
+                data = json.loads(fpath.read_text(encoding="utf-8"))
+                for item in data:
+                    item['report_date'] = report_date
+                    search_index.append(item)
+            except Exception as e:
+                log.warning("Could not load %s for search index: %s", fpath, e)
+    try:
+        (OUT_DIR / "search_index.json").write_text(json.dumps(search_index, default=json_default, separators=(',', ':')), encoding="utf-8")
+    except Exception as e:
+        log.warning("Could not save search_index.json: %s", e)
+
+    # Collect weekly reports for sidebar
+    weekly_reports = sorted([f.stem for f in OUT_DIR.glob("weekly-*.html")], reverse=True)
+
+    # 2) Generate Weekly Report (if today is Sunday)
+    if date.weekday() == 6:
+        weekly_papers = []
+        for i in range(7):
+            d_str = (date - timedelta(days=i)).strftime("%Y-%m-%d")
+            fpath = OUT_DIR / f"{d_str}.json"
+            if fpath.exists():
+                try:
+                    data = json.loads(fpath.read_text(encoding="utf-8"))
+                    for item in data:
+                        p = Paper(**item)
+                        if p.score >= 10.0:
+                            weekly_papers.append(p)
+                except: pass
+                
+        seen_doi, seen_title = set(), set()
+        unique_weekly = []
+        for p in weekly_papers:
+            if p.doi and p.doi in seen_doi: continue
+            if p.title and p.title.lower() in seen_title: continue
+            if p.doi: seen_doi.add(p.doi)
+            if p.title: seen_title.add(p.title.lower())
+            unique_weekly.append(p)
+            
+        unique_weekly.sort(key=lambda x: x.score, reverse=True)
+        
+        env_wk = Environment(loader=FileSystemLoader(str(ROOT)), autoescape=select_autoescape(["html"]))
+        env_wk.filters["fmt_date"] = _fmt_date
+        tmpl_wk = env_wk.get_template("template.html")
+        
+        wk_out = tmpl_wk.render(date=date, date_str=f"Weekly 10-Point ({date_str})",
+                           papers=unique_weekly,
+                           journal_counts={}, 
+                           total=len(unique_weekly),
+                           past_reports=past_reports, 
+                           weekly_reports=weekly_reports, 
+                           is_index=False)
+        wk_path = OUT_DIR / f"weekly-{date_str}.html"
+        wk_path.write_text(wk_out, encoding="utf-8")
+        log.info("Weekly report generated: %s", wk_path)
+        if f"weekly-{date_str}" not in weekly_reports:
+            weekly_reports.insert(0, f"weekly-{date_str}")
+
     sorted_papers = sorted(papers, key=lambda p: p.score, reverse=True)
     journal_counts = {}
     for p in papers:
         journal_counts[p.journal] = journal_counts.get(p.journal, 0) + 1
-
-    # --- Generate AI Summary ---
-    ai_summary = analyze_papers_with_ai(papers)
 
     env = Environment(loader=FileSystemLoader(str(ROOT)),
                       autoescape=select_autoescape(["html"]))
@@ -392,14 +424,14 @@ def generate_report(papers: list[Paper]) -> Path:
     html_out = tmpl.render(date=date, date_str=date_str,
                        papers=sorted_papers,
                        journal_counts=dict(sorted(journal_counts.items())),
-                       total=len(papers), ai_summary=ai_summary,
-                       past_reports=past_reports, is_index=False)
+                       total=len(papers),
+                       past_reports=past_reports, weekly_reports=weekly_reports, is_index=False)
                        
     html_index = tmpl.render(date=date, date_str=date_str,
                        papers=sorted_papers,
                        journal_counts=dict(sorted(journal_counts.items())),
-                       total=len(papers), ai_summary=ai_summary,
-                       past_reports=past_reports, is_index=True)
+                       total=len(papers),
+                       past_reports=past_reports, weekly_reports=weekly_reports, is_index=True)
 
     html_path.write_text(html_out, encoding="utf-8")
     
@@ -450,10 +482,9 @@ def main():
         papers = [p for p in papers if not any(e in p.title.lower() for e in exclude)]
         log.info("Title filter: removed %d papers.", before - len(papers))
 
-    # Deduplicate (keep recent 30‑day window)
     papers = deduplicate(papers, max_age_days=max_age)
     if not papers:
-        print("[WARN] No new papers after dedup."); sys.exit(0)
+        print("[WARN] No new papers after dedup. Proceeding to regenerate report anyway.")
 
     # Score papers
     papers = score_all(papers)
@@ -508,7 +539,7 @@ if __name__ == "__main__":
     # Deduplicate
     papers = deduplicate(papers, max_age_days=max_age)
     if not papers:
-        print("[WARN] No new papers after dedup."); sys.exit(0)
+        print("[WARN] No new papers after dedup. Proceeding to regenerate report anyway.")
 
     # Score
     papers = score_all(papers)
@@ -520,7 +551,7 @@ if __name__ == "__main__":
         log.info("Score filter: dropped %d off-topic papers. %d remain.", before - len(papers), len(papers))
 
     if not papers:
-        print("[WARN] No papers above minimum_score threshold."); sys.exit(0)
+        print("[WARN] No papers above minimum_score threshold in the new fetch. Proceeding to regenerate report anyway.")
 
     # Top N
     if top_n > 0 and len(papers) > top_n:
