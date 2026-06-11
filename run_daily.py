@@ -232,9 +232,10 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                 hit_title = False
                 for k in kws:
                     nk = _norm(k)
-                    if nk in tt:
+                    pattern = rf"(?<![\w-]){re.escape(nk)}(?![\w-])"
+                    if re.search(pattern, tt):
                         raw += w * 2
-                        tt = tt.replace(nk, " ")
+                        tt = re.sub(pattern, " ", tt)
                         hits.add(k)
                         hit_title = True
                         break # Only count concept once
@@ -244,9 +245,10 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                 
                 for k in kws:
                     nk = _norm(k)
-                    if nk in ta:
+                    pattern = rf"(?<![\w-]){re.escape(nk)}(?![\w-])"
+                    if re.search(pattern, ta):
                         raw += w
-                        ta = ta.replace(nk, " ")
+                        ta = re.sub(pattern, " ", ta)
                         hits.add(k)
                         break # Only count concept once
             
@@ -274,13 +276,14 @@ def score_all(papers: list[Paper]) -> list[Paper]:
             hits = set()
             for k, w in sorted_kws:
                 nk = _norm(k)
-                if nk in tt:
+                pattern = rf"(?<![\w-]){re.escape(nk)}(?![\w-])"
+                if re.search(pattern, tt):
                     raw += w * 2
-                    tt = tt.replace(nk, " ")
+                    tt = re.sub(pattern, " ", tt)
                     hits.add(k)
-                elif nk in ta:
+                elif re.search(pattern, ta):
                     raw += w
-                    ta = ta.replace(nk, " ")
+                    ta = re.sub(pattern, " ", ta)
                     hits.add(k)
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
             if p.score > 0.0:
@@ -445,6 +448,50 @@ def generate_report(papers: list[Paper]) -> Path:
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
+def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
+    """Exclude Li/Na/K-ion papers except for battery-related ones in top journals."""
+    top_journals = {"nature", "nature energy", "nature chemistry", "science"}
+    
+    def is_unwanted_ion(p: Paper) -> bool:
+        text = (p.title + " " + (p.abstract or "")).lower()
+        unwanted_kws = [
+            "lithium-ion", "li-ion", "lithium ion",
+            "sodium-ion", "na-ion", "sodium ion",
+            "potassium-ion", "k-ion", "potassium ion"
+        ]
+        if any(kw in text for kw in unwanted_kws):
+            return True
+        if re.search(r'\b(lib|libs|sib|sibs|pib|pibs|kib|kibs)\b', text):
+            return True
+        return False
+        
+    def is_battery(p: Paper) -> bool:
+        text = (p.title + " " + (p.abstract or "")).lower()
+        import re
+        return bool(re.search(r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage)\b', text))
+
+    filtered = []
+    dropped = 0
+    for p in papers:
+        j = (p.journal or "").lower().strip()
+        unwanted = is_unwanted_ion(p)
+        bat = is_battery(p)
+        
+        if j in top_journals:
+            if bat:
+                p.score = max(p.score, 10.0)
+                filtered.append(p)
+            else:
+                dropped += 1
+        elif unwanted:
+            dropped += 1
+        else:
+            filtered.append(p)
+            
+    if dropped > 0:
+        log.info("Custom rule: excluded %d unwanted ion or off-topic top-journal papers.", dropped)
+    return filtered
+
 def main():
     """Main entry point for the daily report.
     Loads configuration, fetches papers, applies filtering, scoring, and generates the HTML report.
@@ -488,6 +535,8 @@ def main():
 
     # Score papers
     papers = score_all(papers)
+
+    papers = apply_custom_rules(papers)
 
     # Apply minimum score filter
     if min_score > 0:
@@ -543,6 +592,8 @@ if __name__ == "__main__":
 
     # Score
     papers = score_all(papers)
+
+    papers = apply_custom_rules(papers)
 
     # Score filter
     if min_score > 0:
