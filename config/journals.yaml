@@ -1,6 +1,18 @@
 journals:
   # ── Nature Portfolio ───────────────────────────────────────────────────────
   # Pattern: https://www.nature.com/[slug].rss
+  - name: "Nature"
+    url: "https://www.nature.com/nature.rss"
+    enabled: true
+
+  - name: "Nature Chemistry"
+    url: "https://www.nature.com/nchem.rss"
+    enabled: true
+
+  - name: "Science"
+    url: "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science"
+    enabled: true
+
   - name: "Nature Energy"
     url: "https://www.nature.com/nenergy.rss"
     enabled: true
