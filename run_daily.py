@@ -100,6 +100,51 @@ def _extract_abstract(entry) -> Optional[str]:
         if text: return text
     return None
 
+def _sanitize_xml(raw: bytes) -> str:
+    """Remove illegal XML characters that cause 'not well-formed' errors."""
+    text = raw.decode("utf-8", errors="replace")
+    # XML 1.0 legal chars: #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
+    return re.sub(r'[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD]', '', text)
+
+def _fetch_feed(url: str, max_retries: int = 3, backoff: float = 2.0):
+    """Fetch and parse an RSS feed. Uses feedparser natively first; if that fails,
+    falls back to requests library + XML sanitization (handles Springer bot-challenge)."""
+    import requests as _req
+
+    # Stage 1: Try feedparser's native URL fetching (handles most feeds well)
+    for attempt in range(1, max_retries + 1):
+        try:
+            feed = feedparser.parse(url, request_headers={"User-Agent": "BatteryPaperAgent/1.0"})
+            if feed.get("bozo") and not feed.entries:
+                raise RuntimeError(feed.get("bozo_exception", "Unknown parse error"))
+            return feed
+        except Exception as e:
+            if attempt < max_retries:
+                time.sleep(backoff)
+            else:
+                log.warning("    Native parse failed: %s — trying requests fallback...", e)
+
+    # Stage 2: Use requests library (better TLS handling, bypasses some bot-challenges)
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/rss+xml,application/xml,text/xml,*/*",
+        }
+        resp = _req.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        raw = resp.content
+        # Detect bot-challenge HTML pages
+        if raw.lstrip().startswith(b'<!DOCTYPE html') or raw.lstrip().startswith(b'<html'):
+            raise RuntimeError("Server returned HTML bot-challenge page instead of RSS")
+        clean_xml = _sanitize_xml(raw)
+        feed = feedparser.parse(clean_xml)
+        if feed.get("bozo") and not feed.entries:
+            raise RuntimeError(feed.get("bozo_exception", "Sanitized parse also failed"))
+        log.info("    Fallback fetch succeeded!")
+        return feed
+    except Exception as e:
+        raise RuntimeError(f"Both native and fallback fetch failed: {e}")
+
 def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
     enabled = [j for j in journals if j.get("enabled", True)]
     log.info("Fetching from %d journals...", len(enabled))
@@ -108,27 +153,24 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
         name, url = j.get("name","?"), j.get("url","")
         log.info("  [%d/%d] %s", i+1, len(enabled), name)
         try:
-            feed = feedparser.parse(url, request_headers={"User-Agent":"BatteryPaperAgent/1.0"})
+            feed = _fetch_feed(url)
         except Exception as e:
-            log.warning("    Error: %s", e); continue
-        if feed.get("bozo") and not feed.entries:
-            log.warning("    Feed parse error: %s", feed.get("bozo_exception","")); continue
+            log.warning("    Feed failed after retries: %s", e); continue
+        count_before = len(papers)
         for e in feed.entries:
             title = (getattr(e,"title","") or "").strip()
             link  = (getattr(e,"link","")  or "").strip()
             if not title or not link: continue
             
             abstract = _extract_abstract(e)
-            # Abstract may be missing in many RSS feeds; we keep it as None and handle gracefully later.
             if abstract:
-                # Strip the journal name itself so we don't get fake hits (e.g. from "Energy Storage Materials")
                 abstract = re.sub(rf"(?i)\b{re.escape(name)}\b", "", abstract).strip()
                 abstract = re.sub(r"^[,\-\.\s]+", "", abstract)
 
             papers.append(Paper(title=title, journal=name, url=link,
                                 doi=_extract_doi(e), authors=_extract_authors(e),
                                 abstract=abstract, published=_parse_date(e)))
-        log.info("    -> %d papers", len([p for p in papers if p.journal == name]))
+        log.info("    -> %d papers", len(papers) - count_before)
         if i < len(enabled)-1: time.sleep(delay)
     log.info("Total fetched: %d", len(papers))
     return papers
@@ -341,7 +383,7 @@ def generate_report(papers: list[Paper]) -> Path:
         raise TypeError(f"Not serializable: {type(obj)}")
 
     try:
-        json_path.write_text(json.dumps([asdict(p) for p in papers], default=json_default, indent=2), encoding="utf-8")
+        json_path.write_text(json.dumps([asdict(p) for p in papers], default=json_default, separators=(',', ':')), encoding="utf-8")
     except Exception as e:
         log.warning("Could not save daily json cache: %s", e)
     # ---------------------------------------
@@ -351,7 +393,7 @@ def generate_report(papers: list[Paper]) -> Path:
     # Write a dynamic JS file so old static reports can dynamically fetch the latest sidebar
     (OUT_DIR / "sidebar.js").write_text(f"const ALL_REPORTS = {json.dumps(all_reports)};", encoding="utf-8")
 
-    # 1) Generate search_index.json
+    # 1) Generate search_index.json (slim: no full abstract)
     search_index = []
     for report_date in all_reports:
         fpath = OUT_DIR / f"{report_date}.json"
@@ -359,12 +401,22 @@ def generate_report(papers: list[Paper]) -> Path:
             try:
                 data = json.loads(fpath.read_text(encoding="utf-8"))
                 for item in data:
-                    item['report_date'] = report_date
-                    search_index.append(item)
+                    search_index.append({
+                        'title': item.get('title', ''),
+                        'journal': item.get('journal', ''),
+                        'authors': item.get('authors', []),
+                        'score': item.get('score', 0),
+                        'url': item.get('url', ''),
+                        'doi': item.get('doi'),
+                        'published': item.get('published'),
+                        'report_date': report_date,
+                        'abstract_snippet': (item.get('abstract') or '')[:200],
+                    })
             except Exception as e:
                 log.warning("Could not load %s for search index: %s", fpath, e)
     try:
         (OUT_DIR / "search_index.json").write_text(json.dumps(search_index, default=json_default, separators=(',', ':')), encoding="utf-8")
+        log.info("Search index: %d entries, %.1f KB", len(search_index), len(json.dumps(search_index, default=json_default, separators=(',', ':'))) / 1024)
     except Exception as e:
         log.warning("Could not save search_index.json: %s", e)
 
@@ -382,7 +434,7 @@ def generate_report(papers: list[Paper]) -> Path:
                     data = json.loads(fpath.read_text(encoding="utf-8"))
                     for item in data:
                         p = Paper(**item)
-                        if p.score >= 10.0:
+                        if p.score >= 7.0:
                             weekly_papers.append(p)
                 except: pass
                 
@@ -401,7 +453,7 @@ def generate_report(papers: list[Paper]) -> Path:
         env_wk.filters["fmt_date"] = _fmt_date
         tmpl_wk = env_wk.get_template("template.html")
         
-        wk_out = tmpl_wk.render(date=date, date_str=f"Weekly 10-Point ({date_str})",
+        wk_out = tmpl_wk.render(date=date, date_str=f"Weekly Top Papers ({date_str})",
                            papers=unique_weekly,
                            journal_counts={}, 
                            total=len(unique_weekly),
@@ -467,7 +519,6 @@ def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
         
     def is_battery(p: Paper) -> bool:
         text = (p.title + " " + (p.abstract or "")).lower()
-        import re
         return bool(re.search(r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage)\b', text))
 
     filtered = []
@@ -551,7 +602,7 @@ def main():
         papers = sorted(papers, key=lambda p: p.score, reverse=True)[:top_n]
         log.info("Kept top %d papers.", top_n)
 
-    # Generate the HTML report (ai_summary is handled inside generate_report)
+    # Generate the HTML report
     html_path = generate_report(papers)
 
     print(f"\n[OK] {len(papers)} papers | Report: {html_path}\n")
@@ -565,61 +616,4 @@ def main():
     print("Done!")
 
 if __name__ == "__main__":
-    journals = yaml.safe_load(JOURNALS.read_text(encoding="utf-8")).get("journals", [])
-    filters  = yaml.safe_load(FILTERS.read_text(encoding="utf-8")).get("exclusion", {}) \
-               if FILTERS.exists() else {}
-
-    max_age   = filters.get("max_age_days", 30)
-    min_score = filters.get("minimum_score", 0)
-    top_n     = filters.get("top_n", 0)
-    exclude   = [t.lower() for t in filters.get("exclude_if_title_contains", [])]
-
-    # Fetch
-    papers = fetch_all(journals)
-    if not papers:
-        print("[WARN] No papers fetched."); sys.exit(0)
-
-    # Title exclusion filter
-    if exclude:
-        before = len(papers)
-        papers = [p for p in papers if not any(e in p.title.lower() for e in exclude)]
-        log.info("Title filter: removed %d papers.", before - len(papers))
-
-    # Deduplicate
-    papers = deduplicate(papers, max_age_days=max_age)
-    if not papers:
-        print("[WARN] No new papers after dedup. Proceeding to regenerate report anyway.")
-
-    # Score
-    papers = score_all(papers)
-
-    papers = apply_custom_rules(papers)
-
-    # Score filter
-    if min_score > 0:
-        before = len(papers)
-        papers = [p for p in papers if p.score >= min_score]
-        log.info("Score filter: dropped %d off-topic papers. %d remain.", before - len(papers), len(papers))
-
-    if not papers:
-        print("[WARN] No papers above minimum_score threshold in the new fetch. Proceeding to regenerate report anyway.")
-
-    # Top N
-    if top_n > 0 and len(papers) > top_n:
-        papers = sorted(papers, key=lambda p: p.score, reverse=True)[:top_n]
-        log.info("Kept top %d papers.", top_n)
-
-    # Generate report
-    html_path = generate_report(papers)
-
-    print(f"\n[OK] {len(papers)} papers | Report: {html_path}\n")
-
-    # Open in browser
-    try:
-        webbrowser.open(html_path.as_uri())
-    except Exception as e:
-        log.warning("Could not open browser: %s", e)
-
-    print("Done!")
-
-
+    main()
