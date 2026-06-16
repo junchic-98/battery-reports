@@ -13,14 +13,13 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-import json, logging, re, time, webbrowser, os, math
-from collections import defaultdict
+import json, logging, math, os, re, time, webbrowser
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
-import feedparser, yaml
+import feedparser, requests, yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from Levenshtein import ratio as lev_ratio
 
@@ -108,7 +107,6 @@ def _sanitize_xml(raw: bytes) -> str:
 def _fetch_feed(url: str, max_retries: int = 3, backoff: float = 2.0):
     """Fetch and parse an RSS feed. Uses feedparser natively first; if that fails,
     falls back to requests library + XML sanitization (handles Springer bot-challenge)."""
-    import requests as _req
 
     # Stage 1: Try feedparser's native URL fetching (handles most feeds well)
     for attempt in range(1, max_retries + 1):
@@ -129,7 +127,7 @@ def _fetch_feed(url: str, max_retries: int = 3, backoff: float = 2.0):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept": "application/rss+xml,application/xml,text/xml,*/*",
         }
-        resp = _req.get(url, headers=headers, timeout=15)
+        resp = requests.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
         raw = resp.content
         # Detect bot-challenge HTML pages
@@ -236,8 +234,15 @@ def deduplicate(papers: list[Paper], max_age_days: int = 30,
             if p_doi_clean in existing_dois:
                 stats["doi"] += 1; continue
                 
-        # Check title similarity
-        if any(lev_ratio(n, ex) >= sim_threshold for ex in existing_titles):
+        # Check title similarity (with length pre-filter: if lengths differ by
+        # more than (1 - threshold), Levenshtein ratio cannot reach threshold)
+        n_len = len(n)
+        max_len_diff = 1.0 - sim_threshold  # 0.15 for threshold 0.85
+        if any(
+            abs(n_len - len(ex)) / max(n_len, len(ex), 1) <= max_len_diff
+            and lev_ratio(n, ex) >= sim_threshold
+            for ex in existing_titles
+        ):
             stats["sim"] += 1; continue
             
         # If unique, add to lists
@@ -291,38 +296,42 @@ def score_all(papers: list[Paper]) -> list[Paper]:
     if "concepts" in data:
         concepts = data["concepts"]
         max_possible = sum(c.get("weight", 0) * 2 for c in concepts.values())
-        
+
+        # Pre-compile regex patterns for each keyword in each concept
+        compiled_concepts = []
+        for c_name, c_data in concepts.items():
+            w = c_data.get("weight", 0)
+            compiled_kws = []
+            for k in sorted(c_data.get("keywords", []), key=lambda x: len(_norm(x)), reverse=True):
+                nk = _norm(k)
+                pat = re.compile(rf"(?<![\w-]){re.escape(nk)}(?![\w-])")
+                compiled_kws.append((k, pat))
+            compiled_concepts.append((c_name, w, compiled_kws))
+
         for p in papers:
             tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
             raw = 0
             hits = set()
-            for c_name, c_data in concepts.items():
-                w = c_data.get("weight", 0)
-                kws = sorted(c_data.get("keywords", []), key=lambda x: len(_norm(x)), reverse=True)
-                
+            for c_name, w, compiled_kws in compiled_concepts:
                 hit_title = False
-                for k in kws:
-                    nk = _norm(k)
-                    pattern = rf"(?<![\w-]){re.escape(nk)}(?![\w-])"
-                    if re.search(pattern, tt):
+                for k, pat in compiled_kws:
+                    if pat.search(tt):
                         raw += w * 2
-                        tt = re.sub(pattern, " ", tt)
+                        tt = pat.sub(" ", tt)
                         hits.add(k)
                         hit_title = True
-                        break # Only count concept once
-                
+                        break  # Only count concept once
+
                 if hit_title:
                     continue
-                
-                for k in kws:
-                    nk = _norm(k)
-                    pattern = rf"(?<![\w-]){re.escape(nk)}(?![\w-])"
-                    if re.search(pattern, ta):
+
+                for k, pat in compiled_kws:
+                    if pat.search(ta):
                         raw += w
-                        ta = re.sub(pattern, " ", ta)
+                        ta = pat.sub(" ", ta)
                         hits.add(k)
-                        break # Only count concept once
-            
+                        break  # Only count concept once
+
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
             if p.score > 0.0:
                 jname = (p.journal or "").lower().strip()
@@ -340,21 +349,24 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         kws = data.get("keywords", data) if isinstance(data, dict) else {}
         if not kws: return papers
         max_possible = sum(w * 2 for w in kws.values())
-        sorted_kws = sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True)
+        # Pre-compile patterns for old format too
+        compiled_kws = []
+        for k, w in sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True):
+            nk = _norm(k)
+            pat = re.compile(rf"(?<![\w-]){re.escape(nk)}(?![\w-])")
+            compiled_kws.append((k, w, pat))
         for p in papers:
             tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
             raw = 0
             hits = set()
-            for k, w in sorted_kws:
-                nk = _norm(k)
-                pattern = rf"(?<![\w-]){re.escape(nk)}(?![\w-])"
-                if re.search(pattern, tt):
+            for k, w, pat in compiled_kws:
+                if pat.search(tt):
                     raw += w * 2
-                    tt = re.sub(pattern, " ", tt)
+                    tt = pat.sub(" ", tt)
                     hits.add(k)
-                elif re.search(pattern, ta):
+                elif pat.search(ta):
                     raw += w
-                    ta = re.sub(pattern, " ", ta)
+                    ta = pat.sub(" ", ta)
                     hits.add(k)
             p.score = round(min(10.0, (raw / max_possible) * 30), 1) if max_possible else 0.0
             if p.score > 0.0:
@@ -444,8 +456,9 @@ def generate_report(papers: list[Paper]) -> Path:
             except Exception as e:
                 log.warning("Could not load %s for search index: %s", fpath, e)
     try:
-        (OUT_DIR / "search_index.json").write_text(json.dumps(search_index, default=json_default, separators=(',', ':')), encoding="utf-8")
-        log.info("Search index: %d entries, %.1f KB", len(search_index), len(json.dumps(search_index, default=json_default, separators=(',', ':'))) / 1024)
+        si_json = json.dumps(search_index, default=json_default, separators=(',', ':'))
+        (OUT_DIR / "search_index.json").write_text(si_json, encoding="utf-8")
+        log.info("Search index: %d entries, %.1f KB", len(search_index), len(si_json) / 1024)
     except Exception as e:
         log.warning("Could not save search_index.json: %s", e)
 
@@ -530,44 +543,42 @@ def generate_report(papers: list[Paper]) -> Path:
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
-    """Exclude Li/Na/K-ion papers except for battery-related ones in top journals."""
+    """Filter papers by custom rules:
+    - Top journals (Nature, Science, etc.): keep only battery-related papers and boost score to 10.
+    - Other journals: exclude Li-ion/Na-ion/K-ion papers (user's focus is ASSB/Li-S, not intercalation).
+    """
     top_journals = {"nature", "nature energy", "nature chemistry", "science"}
-    
-    def is_unwanted_ion(p: Paper) -> bool:
-        text = (p.title + " " + (p.abstract or "")).lower()
-        unwanted_kws = [
-            "lithium-ion", "li-ion", "lithium ion",
-            "sodium-ion", "na-ion", "sodium ion",
-            "potassium-ion", "k-ion", "potassium ion"
-        ]
-        if any(kw in text for kw in unwanted_kws):
-            return True
-        if re.search(r'\b(lib|libs|sib|sibs|pib|pibs|kib|kibs)\b', text):
-            return True
-        return False
-        
-    def is_battery(p: Paper) -> bool:
-        text = (p.title + " " + (p.abstract or "")).lower()
-        return bool(re.search(r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage)\b', text))
+
+    # Compiled once, used for every paper
+    _unwanted_re = re.compile(
+        r'\b(lithium[- ]ion|li[- ]ion|sodium[- ]ion|na[- ]ion|potassium[- ]ion|k[- ]ion'
+        r'|lib|libs|sib|sibs|pib|pibs|kib|kibs)\b'
+    )
+    _relevant_re = re.compile(
+        r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage'
+        r'|solid[- ]state|sulfide|argyrodite|garnet|llzo|lpscl|li.s|lithium[- ]sulfur'
+        r'|all[- ]solid|dendrite|ionic conductiv)\b'
+    )
 
     filtered = []
     dropped = 0
     for p in papers:
+        text = (p.title + " " + (p.abstract or "")).lower()
         j = (p.journal or "").lower().strip()
-        unwanted = is_unwanted_ion(p)
-        bat = is_battery(p)
-        
+
         if j in top_journals:
-            if bat:
+            # Top journals: keep only if relevant to battery/ASSB/Li-S research
+            if _relevant_re.search(text):
                 p.score = max(p.score, 10.0)
                 filtered.append(p)
             else:
                 dropped += 1
-        elif unwanted:
+        elif _unwanted_re.search(text):
+            # Other journals: exclude intercalation-type papers
             dropped += 1
         else:
             filtered.append(p)
-            
+
     if dropped > 0:
         log.info("Custom rule: excluded %d unwanted ion or off-topic top-journal papers.", dropped)
     return filtered
@@ -581,22 +592,17 @@ def main():
         print("[ERROR] config/journals.yaml not found."); sys.exit(1)
     journals = yaml.safe_load(JOURNALS.read_text(encoding="utf-8")).get("journals", [])
 
-    # Load optional report-specific config (overrides defaults)
-    report_cfg_path = ROOT / "config" / "report_config.json"
-    if report_cfg_path.exists():
-        rcfg = json.loads(report_cfg_path.read_text(encoding="utf-8"))
-    else:
-        rcfg = {}
-    # Defaults: keep top 20 papers with score >= 1.0
-    max_age = rcfg.get("max_age_days", 30)
-    min_score = rcfg.get("min_score", 1.0)
-    top_n = rcfg.get("top_n", 20)
-
-    # Optional title‑exclusion filter from filters.yaml
+    # Load all settings from filters.yaml (single source of truth)
     exclude = []
     if FILTERS.exists():
         filters_yaml = yaml.safe_load(FILTERS.read_text(encoding="utf-8"))
-        exclude = [t.lower() for t in filters_yaml.get("exclusion", {}).get("exclude_if_title_contains", [])]
+        excl_cfg = filters_yaml.get("exclusion", {})
+        exclude = [t.lower() for t in excl_cfg.get("exclude_if_title_contains", [])]
+        max_age   = excl_cfg.get("max_age_days", 30)
+        min_score = excl_cfg.get("minimum_score", 1.0)
+        top_n     = excl_cfg.get("top_n", 20)
+    else:
+        max_age, min_score, top_n = 30, 1.0, 20
 
     # Fetch papers
     papers = fetch_all(journals)
@@ -636,11 +642,12 @@ def main():
 
     print(f"\n[OK] {len(papers)} papers | Report: {html_path}\n")
 
-    # Open in default browser
-    try:
-        webbrowser.open(html_path.as_uri())
-    except Exception as e:
-        log.warning("Could not open browser: %s", e)
+    # Open in default browser (skip in CI environments like GitHub Actions)
+    if not os.environ.get("CI"):
+        try:
+            webbrowser.open(html_path.as_uri())
+        except Exception as e:
+            log.warning("Could not open browser: %s", e)
 
     print("Done!")
 
