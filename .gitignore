@@ -1,4 +1,5 @@
 __pycache__/
 *.pyc
+
 # Local database (legacy, no longer used by the script)
 data/papers.db
