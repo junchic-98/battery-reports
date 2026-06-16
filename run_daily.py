@@ -547,12 +547,17 @@ def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
     - Top journals (Nature, Science, etc.): keep only battery-related papers and boost score to 10.
     - Other journals: exclude Li-ion/Na-ion/K-ion papers (user's focus is ASSB/Li-S, not intercalation).
     """
-    top_journals = {"nature", "nature energy", "nature chemistry", "science"}
+    top_journals = {
+        "nature", "nature energy", "nature chemistry", "nature materials",
+        "nature communications", "nature nanotechnology", "communications materials",
+        "science",
+    }
 
     # Compiled once, used for every paper
     _unwanted_re = re.compile(
         r'\b(lithium[- ]ion|li[- ]ion|sodium[- ]ion|na[- ]ion|potassium[- ]ion|k[- ]ion'
-        r'|lib|libs|sib|sibs|pib|pibs|kib|kibs)\b'
+        r'|zinc[- ]ion|zn[- ]ion|aluminum[- ]ion|al[- ]ion|magnesium[- ]ion|mg[- ]ion'
+        r'|lib|libs|sib|sibs|pib|pibs|kib|kibs|zib|zibs)\b'
     )
     _relevant_re = re.compile(
         r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage'
