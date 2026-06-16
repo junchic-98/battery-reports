@@ -13,7 +13,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-import json, logging, re, sqlite3, time, webbrowser, os, math
+import json, logging, re, time, webbrowser, os, math
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
@@ -42,7 +42,6 @@ if 'fakepyfile' in _file_path or _file_path == '<string>':
     ROOT = Path.cwd()
 else:
     ROOT = Path(_file_path).parent
-DB_PATH     = ROOT / "data" / "papers.db"
 OUT_DIR     = ROOT / "out"
 TEMPLATE    = ROOT / "template.html"
 JOURNALS    = ROOT / "config" / "journals.yaml"
@@ -178,46 +177,76 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEDUPLICATE
 # ═══════════════════════════════════════════════════════════════════════════════
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS papers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    doi TEXT, title_norm TEXT NOT NULL, url TEXT NOT NULL,
-    journal TEXT, seen_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_doi   ON papers(doi);
-CREATE INDEX IF NOT EXISTS idx_title ON papers(title_norm);
-"""
-
 def _norm_title(t: str) -> str:
     return " ".join(re.sub(r"[^\w\s]"," ", t.lower()).split())
 
 def deduplicate(papers: list[Paper], max_age_days: int = 30,
                 sim_threshold: float = 0.85) -> list[Paper]:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.executescript(_SCHEMA); conn.commit()
-    cur = conn.cursor()
+    """Deduplicate papers against past reports stored in out/*.json to persist state without database."""
     now = datetime.now(timezone.utc)
-    cutoff = (now - timedelta(days=max_age_days)).isoformat()
-    cur.execute("SELECT title_norm FROM papers WHERE seen_at > ?", (cutoff,))
-    existing = [r[0] for r in cur.fetchall()]
+    cutoff_date = (now - timedelta(days=max_age_days)).date()
+
+    existing_titles = set()
+    existing_dois = set()
+
+    # Load existing paper titles and DOIs from recent JSON reports
+    if OUT_DIR.exists():
+        for p in OUT_DIR.glob("*.json"):
+            if p.name == "search_index.json":
+                continue
+            # Parse date from filename YYYY-MM-DD
+            match = re.match(r"^(\d{4}-\d{2}-\d{2})\.json$", p.name)
+            if not match:
+                continue
+            try:
+                file_date = datetime.strptime(match.group(1), "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            
+            # Only consider files within the max_age_days window
+            if file_date < cutoff_date:
+                continue
+
+            try:
+                items = json.loads(p.read_text(encoding="utf-8"))
+                for item in items:
+                    title = item.get("title", "")
+                    # Strip any HTML tags like <mark>
+                    title_clean = re.sub(r"<[^>]+>", "", title)
+                    norm = _norm_title(title_clean)
+                    existing_titles.add(norm)
+                    
+                    doi = item.get("doi")
+                    if doi:
+                        existing_dois.add(doi.strip().lower())
+            except Exception as e:
+                log.warning("Could not parse %s for deduplication: %s", p, e)
 
     unique, stats = [], {"old":0, "doi":0, "sim":0, "ok":0}
     for p in papers:
+        # Check publish date age
         if p.published and p.published < now - timedelta(days=max_age_days):
             stats["old"] += 1; continue
+            
         n = _norm_title(p.title)
+        
+        # Check DOI dup
         if p.doi:
-            cur.execute("SELECT 1 FROM papers WHERE doi=?", (p.doi,))
-            if cur.fetchone(): stats["doi"] += 1; continue
-        if any(lev_ratio(n, ex) >= sim_threshold for ex in existing):
+            p_doi_clean = p.doi.strip().lower()
+            if p_doi_clean in existing_dois:
+                stats["doi"] += 1; continue
+                
+        # Check title similarity
+        if any(lev_ratio(n, ex) >= sim_threshold for ex in existing_titles):
             stats["sim"] += 1; continue
-        cur.execute("INSERT INTO papers(doi,title_norm,url,journal,seen_at) VALUES(?,?,?,?,?)",
-                    (p.doi, n, p.url, p.journal, now.isoformat()))
-        existing.append(n)
+            
+        # If unique, add to lists
+        existing_titles.add(n)
+        if p.doi:
+            existing_dois.add(p.doi.strip().lower())
+            
         unique.append(p); stats["ok"] += 1
 
-    conn.commit(); conn.close()
     log.info("Dedup: %d kept | %d too old | %d DOI dups | %d title dups",
              stats["ok"], stats["old"], stats["doi"], stats["sim"])
     return unique
