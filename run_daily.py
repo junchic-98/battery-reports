@@ -176,6 +176,9 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
 # DEDUPLICATE
 # ═══════════════════════════════════════════════════════════════════════════════
 def _norm_title(t: str) -> str:
+    # Strip HTML tags (e.g. <sub>, <mark>) before normalizing so RSS raw titles
+    # and stored JSON titles produce the same output
+    t = re.sub(r"<[^>]+>", " ", t)
     return " ".join(re.sub(r"[^\w\s]"," ", t.lower()).split())
 
 def deduplicate(papers: list[Paper], max_age_days: int = 30,
