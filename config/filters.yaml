@@ -27,3 +27,10 @@ exclusion:
   # Set to 0 to disable. Recommended: 20 (realistic reading limit per day).
   top_n: 30
 
+# API keys for external services
+api_keys:
+  # Optional free API key for OpenAlex (from https://openalex.org/settings/api)
+  # Without a key, you are limited to 100 requests per day. With a key, 100,000 requests.
+  openalex: ""
+
+
