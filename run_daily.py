@@ -543,6 +543,115 @@ def generate_report(papers: list[Paper]) -> Path:
     return html_path
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# OPENALEX / INDUSTRY BOOST
+# ═══════════════════════════════════════════════════════════════════════════════
+def _normalize_doi(doi: Optional[str]) -> str:
+    if not doi:
+        return ""
+    doi = doi.strip().lower()
+    if doi.startswith("https://doi.org/"):
+        doi = doi[len("https://doi.org/"):]
+    elif doi.startswith("http://doi.org/"):
+        doi = doi[len("http://doi.org/"):]
+    elif doi.startswith("doi.org/"):
+        doi = doi[len("doi.org/"):]
+    return doi
+
+def check_industry_affiliations(papers: list[Paper], api_key: Optional[str] = None):
+    """Check OpenAlex for author affiliations with target companies (Samsung, LG, SK).
+    If a match is found, boost the score to 10.0 and mark the paper as boosted.
+    """
+    doi_to_paper = {}
+    for p in papers:
+        if p.doi:
+            norm_doi = _normalize_doi(p.doi)
+            if norm_doi:
+                doi_to_paper[norm_doi] = p
+
+    if not doi_to_paper:
+        log.info("No papers with DOIs to check for affiliations.")
+        return
+
+    dois = list(doi_to_paper.keys())
+    log.info("Checking OpenAlex affiliations for %d papers...", len(dois))
+
+    chunk_size = 50
+    headers = {"User-Agent": "BatteryPaperAgent/1.0 (mailto:agent@battery.report)"}
+    target_re = re.compile(r'\b(samsung|lg|sk|sait)\b', re.IGNORECASE)
+
+    for i in range(0, len(dois), chunk_size):
+        chunk = dois[i:i + chunk_size]
+        filter_val = "doi:" + "|".join(chunk)
+        url = "https://api.openalex.org/works"
+        params = {
+            "filter": filter_val,
+            "per_page": 100
+        }
+        if api_key:
+            params["api_key"] = api_key
+
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=15)
+            if r.status_code in (401, 403):
+                log.warning("OpenAlex API authentication error: %s", r.text[:200])
+                break
+            elif r.status_code == 409:
+                log.warning("OpenAlex API limit reached (409). Consider adding an api_key in filters.yaml.")
+                break
+            elif r.status_code != 200:
+                log.warning("OpenAlex API returned status code %d: %s", r.status_code, r.text[:200])
+                continue
+
+            data = r.json()
+            results = data.get("results", []) or []
+            for work in results:
+                work_doi_raw = work.get("doi")
+                if not work_doi_raw:
+                    continue
+                work_doi = _normalize_doi(work_doi_raw)
+                p = doi_to_paper.get(work_doi)
+                if not p:
+                    continue
+
+                matched_company = None
+                authorships = work.get("authorships", []) or []
+                for auth in authorships:
+                    institutions = auth.get("institutions", []) or []
+                    for inst in institutions:
+                        display_name = inst.get("display_name")
+                        if display_name:
+                            match = target_re.search(display_name)
+                            if match:
+                                company_lower = match.group(1).lower()
+                                if company_lower == "samsung":
+                                    matched_company = "Samsung"
+                                elif company_lower == "lg":
+                                    matched_company = "LG"
+                                elif company_lower == "sk":
+                                    matched_company = "SK"
+                                elif company_lower == "sait":
+                                    matched_company = "Samsung (SAIT)"
+                                else:
+                                    matched_company = company_lower.capitalize()
+                                break
+                    if matched_company:
+                        break
+
+                if matched_company:
+                    log.info("  [BOOST] Paper '%s' has author from %s (DOI: %s)", p.title, matched_company, p.doi)
+                    p.score = 10.0
+                    p.target_affiliation = True
+                    # Prepend a beautiful badge to the abstract
+                    badge = f'<span style="background-color: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin-right: 8px;">★ {matched_company} Affiliation</span>'
+                    p.abstract = badge + (p.abstract or "")
+
+        except Exception as e:
+            log.warning("Failed to query OpenAlex for batch %d: %s", i // chunk_size + 1, e)
+
+        if i + chunk_size < len(dois):
+            time.sleep(0.5)
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
@@ -571,6 +680,11 @@ def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
     filtered = []
     dropped = 0
     for p in papers:
+        # If paper is from target industry affiliations (Samsung/LG/SK), keep it directly
+        if getattr(p, "target_affiliation", False):
+            filtered.append(p)
+            continue
+
         text = (p.title + " " + (p.abstract or "")).lower()
         j = (p.journal or "").lower().strip()
 
@@ -629,6 +743,24 @@ def main():
 
     # Score papers
     papers = score_all(papers)
+
+    # Check affiliations via OpenAlex and boost target industry papers
+    api_key = None
+    if FILTERS.exists():
+        try:
+            filters_yaml = yaml.safe_load(FILTERS.read_text(encoding="utf-8"))
+            if filters_yaml:
+                api_keys_section = filters_yaml.get("api_keys") or {}
+                if isinstance(api_keys_section, dict):
+                    api_key = api_keys_section.get("openalex")
+                if not api_key:
+                    api_key = filters_yaml.get("openalex_api_key")
+        except Exception as e:
+            log.warning("Could not read API key from filters.yaml: %s", e)
+    
+    api_key = os.environ.get("OPENALEX_API_KEY") or api_key
+
+    check_industry_affiliations(papers, api_key=api_key)
 
     papers = apply_custom_rules(papers)
 
