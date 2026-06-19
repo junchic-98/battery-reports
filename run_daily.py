@@ -680,12 +680,16 @@ def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
     filtered = []
     dropped = 0
     for p in papers:
-        # If paper is from target industry affiliations (Samsung/LG/SK), keep it directly
+        text = (p.title + " " + (p.abstract or "")).lower()
+
+        # If paper is from target industry affiliations (Samsung/LG/SK), keep only if relevant to battery research
         if getattr(p, "target_affiliation", False):
-            filtered.append(p)
+            if _relevant_re.search(text):
+                filtered.append(p)
+            else:
+                dropped += 1
             continue
 
-        text = (p.title + " " + (p.abstract or "")).lower()
         j = (p.journal or "").lower().strip()
 
         if j in top_journals:
