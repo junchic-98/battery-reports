@@ -673,8 +673,7 @@ def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
     )
     _relevant_re = re.compile(
         r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage'
-        r'|solid[- ]state|sulfide|argyrodite|garnet|llzo|lpscl|li.s|lithium[- ]sulfur'
-        r'|all[- ]solid|dendrite|ionic conductiv)\b'
+        r'|li.s|lithium[- ]sulfur|argyrodite|llzo|lpscl|ionic conductiv)\b'
     )
 
     filtered = []
