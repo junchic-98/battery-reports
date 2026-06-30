@@ -374,7 +374,7 @@ Minshen Zhu</span>
       <div class="sidebar-title">
         <span>Navigation</span>
       </div>
-      <a href="./index.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
+      <a href="../index.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
         <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
           <span style="color:#4f46e5;font-weight:700;pointer-events:none;">🏠</span>
           <span style="color:#374151; pointer-events: none; font-weight: 600;">Home (Latest)</span>
@@ -390,21 +390,21 @@ Minshen Zhu</span>
       </div>
       <div style="max-height: 25vh; overflow-y: auto; padding-right: 0.2rem;">
         
-        <a href="out/weekly-2026-06-28.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
+        <a href="./weekly-2026-06-28.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
           <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
             <span style="color:#f59e0b;font-weight:700;pointer-events:none;">⭐</span>
             <span style="color:#374151; pointer-events: none; font-weight: 600;">2026-06-28</span>
           </div>
         </a>
         
-        <a href="out/weekly-2026-06-21.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
+        <a href="./weekly-2026-06-21.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
           <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
             <span style="color:#f59e0b;font-weight:700;pointer-events:none;">⭐</span>
             <span style="color:#374151; pointer-events: none; font-weight: 600;">2026-06-21</span>
           </div>
         </a>
         
-        <a href="out/weekly-2026-06-14.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
+        <a href="./weekly-2026-06-14.html" style="text-decoration:none; display: block; margin-bottom: 0.5rem;">
           <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
             <span style="color:#f59e0b;font-weight:700;pointer-events:none;">⭐</span>
             <span style="color:#374151; pointer-events: none; font-weight: 600;">2026-06-14</span>
@@ -461,7 +461,7 @@ function filterJournal(journal) {
 }
 </script>
 
-<script src="out/sidebar.js"></script>
+<script src="sidebar.js"></script>
 <script>
   const listContainer = document.getElementById('dynamic-reports-list');
   const pastReportsCard = document.getElementById('pastReportsCard');
@@ -471,7 +471,7 @@ function filterJournal(journal) {
       if (pr === '2026-06-30') continue;
       const a = document.createElement('a');
       a.style.cssText = "text-decoration:none; display: block;";
-      a.href = "out/" + pr + ".html";
+      a.href = "" + pr + ".html";
       a.innerHTML = `
         <div class="sj" style="justify-content: flex-start; gap: 0.5rem;">
           <span style="color:#4f46e5;font-weight:700;pointer-events:none;">🗓</span>
@@ -518,7 +518,7 @@ function filterJournal(journal) {
       document.getElementById('searchLoader').style.display = 'none';
       return;
     }
-    const basePath = 'out/';
+    const basePath = './';
     
     try {
       let allPapers = [];
