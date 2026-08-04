@@ -14,6 +14,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 import json, logging, math, os, re, time, webbrowser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -22,7 +23,6 @@ from typing import Optional
 import feedparser, requests, yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from Levenshtein import ratio as lev_ratio
-
 
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -46,6 +46,13 @@ TEMPLATE    = ROOT / "template.html"
 JOURNALS    = ROOT / "config" / "journals.yaml"
 FILTERS     = ROOT / "config" / "filters.yaml"
 KEYWORDS    = ROOT / "data" / "keywords.json"
+
+# ── Reusable HTTP Session ─────────────────────────────────────────────────────
+SESSION = requests.Session()
+SESSION.headers.update({
+    "User-Agent": "BatteryPaperAgent/1.0 (Mozilla/5.0; Windows NT 10.0; Win64; x64)",
+    "Accept": "application/rss+xml,application/xml,text/xml,*/*",
+})
 
 # ── Data model ────────────────────────────────────────────────────────────────
 @dataclass
@@ -106,9 +113,9 @@ def _sanitize_xml(raw: bytes) -> str:
 
 def _fetch_feed(url: str, max_retries: int = 3, backoff: float = 2.0):
     """Fetch and parse an RSS feed. Uses feedparser natively first; if that fails,
-    falls back to requests library + XML sanitization (handles Springer bot-challenge)."""
+    falls back to requests session + XML sanitization (handles Springer bot-challenge)."""
 
-    # Stage 1: Try feedparser's native URL fetching (handles most feeds well)
+    # Stage 1: Try feedparser's native URL fetching
     for attempt in range(1, max_retries + 1):
         try:
             feed = feedparser.parse(url, request_headers={"User-Agent": "BatteryPaperAgent/1.0"})
@@ -121,13 +128,9 @@ def _fetch_feed(url: str, max_retries: int = 3, backoff: float = 2.0):
             else:
                 log.warning("    Native parse failed: %s — trying requests fallback...", e)
 
-    # Stage 2: Use requests library (better TLS handling, bypasses some bot-challenges)
+    # Stage 2: Use HTTP Session (better TLS handling & connection reuse)
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/rss+xml,application/xml,text/xml,*/*",
-        }
-        resp = requests.get(url, headers=headers, timeout=15)
+        resp = SESSION.get(url, timeout=15)
         resp.raise_for_status()
         raw = resp.content
         # Detect bot-challenge HTML pages
@@ -142,21 +145,14 @@ def _fetch_feed(url: str, max_retries: int = 3, backoff: float = 2.0):
     except Exception as e:
         raise RuntimeError(f"Both native and fallback fetch failed: {e}")
 
-def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
-    enabled = [j for j in journals if j.get("enabled", True)]
-    log.info("Fetching from %d journals...", len(enabled))
+def _fetch_single_journal(j: dict) -> tuple[dict, list[Paper], Optional[str]]:
+    name, url = j.get("name", "?"), j.get("url", "")
     papers = []
-    for i, j in enumerate(enabled):
-        name, url = j.get("name","?"), j.get("url","")
-        log.info("  [%d/%d] %s", i+1, len(enabled), name)
-        try:
-            feed = _fetch_feed(url)
-        except Exception as e:
-            log.warning("    Feed failed after retries: %s", e); continue
-        count_before = len(papers)
+    try:
+        feed = _fetch_feed(url)
         for e in feed.entries:
-            title = (getattr(e,"title","") or "").strip()
-            link  = (getattr(e,"link","")  or "").strip()
+            title = (getattr(e, "title", "") or "").strip()
+            link  = (getattr(e, "link", "")  or "").strip()
             if not title or not link: continue
             
             abstract = _extract_abstract(e)
@@ -167,8 +163,26 @@ def fetch_all(journals: list[dict], delay: float = 0.5) -> list[Paper]:
             papers.append(Paper(title=title, journal=name, url=link,
                                 doi=_extract_doi(e), authors=_extract_authors(e),
                                 abstract=abstract, published=_parse_date(e)))
-        log.info("    -> %d papers", len(papers) - count_before)
-        if i < len(enabled)-1: time.sleep(delay)
+        return (j, papers, None)
+    except Exception as e:
+        return (j, [], str(e))
+
+def fetch_all(journals: list[dict], max_workers: int = 8) -> list[Paper]:
+    enabled = [j for j in journals if j.get("enabled", True)]
+    log.info("Fetching from %d journals in parallel (max_workers=%d)...", len(enabled), max_workers)
+    papers = []
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_journal = {executor.submit(_fetch_single_journal, j): j for j in enabled}
+        for future in as_completed(future_to_journal):
+            j, j_papers, err = future.result()
+            name = j.get("name", "?")
+            if err:
+                log.warning("  [%s] Feed failed: %s", name, err)
+            else:
+                log.info("  [%s] -> %d papers", name, len(j_papers))
+                papers.extend(j_papers)
+                
     log.info("Total fetched: %d", len(papers))
     return papers
 
@@ -212,16 +226,20 @@ def deduplicate(papers: list[Paper], max_age_days: int = 30,
                 items = json.loads(p.read_text(encoding="utf-8"))
                 for item in items:
                     title = item.get("title", "")
-                    # Strip any HTML tags like <mark>
                     title_clean = re.sub(r"<[^>]+>", "", title)
                     norm = _norm_title(title_clean)
-                    existing_titles.add(norm)
+                    if norm:
+                        existing_titles.add(norm)
                     
                     doi = item.get("doi")
                     if doi:
                         existing_dois.add(doi.strip().lower())
             except Exception as e:
                 log.warning("Could not parse %s for deduplication: %s", p, e)
+
+    # Pre-cache title lengths for ultra-fast candidate filtering
+    existing_titles_cached = [(ex, len(ex)) for ex in existing_titles]
+    max_len_diff = 1.0 - sim_threshold  # 0.15 for threshold 0.85
 
     unique, stats = [], {"old":0, "doi":0, "sim":0, "ok":0}
     for p in papers:
@@ -230,6 +248,8 @@ def deduplicate(papers: list[Paper], max_age_days: int = 30,
             stats["old"] += 1; continue
             
         n = _norm_title(p.title)
+        if not n:
+            continue
         
         # Check DOI dup
         if p.doi:
@@ -237,19 +257,21 @@ def deduplicate(papers: list[Paper], max_age_days: int = 30,
             if p_doi_clean in existing_dois:
                 stats["doi"] += 1; continue
                 
-        # Check title similarity (with length pre-filter: if lengths differ by
-        # more than (1 - threshold), Levenshtein ratio cannot reach threshold)
+        # Check title similarity using pre-cached lengths
         n_len = len(n)
-        max_len_diff = 1.0 - sim_threshold  # 0.15 for threshold 0.85
-        if any(
-            abs(n_len - len(ex)) / max(n_len, len(ex), 1) <= max_len_diff
-            and lev_ratio(n, ex) >= sim_threshold
-            for ex in existing_titles
-        ):
-            stats["sim"] += 1; continue
+        is_dup = False
+        for ex, ex_len in existing_titles_cached:
+            if abs(n_len - ex_len) / max(n_len, ex_len, 1) <= max_len_diff:
+                if lev_ratio(n, ex) >= sim_threshold:
+                    is_dup = True
+                    break
+        if is_dup:
+            stats["sim"] += 1
+            continue
             
         # If unique, add to lists
         existing_titles.add(n)
+        existing_titles_cached.append((n, n_len))
         if p.doi:
             existing_dois.add(p.doi.strip().lower())
             
@@ -284,15 +306,14 @@ def score_all(papers: list[Paper]) -> list[Paper]:
     if_path = ROOT / "data" / "impact_factors.json"
     ifs = json.loads(if_path.read_text(encoding="utf-8")) if if_path.exists() else {}
 
-    def _highlight(text: str, kws: set) -> str:
-        """Wrap keyword occurrences in <mark> tags for visual highlighting."""
+    def _highlight(text: str, kws: set, kw_patterns: dict) -> str:
+        """Wrap keyword occurrences in <mark> tags for visual highlighting using pre-compiled regex."""
         if not text or not kws:
             return text
-        # Sort longer keywords first to avoid partial overlaps
         for kw in sorted(kws, key=len, reverse=True):
-            esc = re.escape(kw)
-            # Case‑insensitive whole‑word match
-            text = re.sub(rf"(?i)(?<![\w-])({esc})(?![\w-])", r"<mark>\1</mark>", text)
+            pat = kw_patterns.get(kw)
+            if pat:
+                text = pat.sub(r"<mark>\1</mark>", text)
         return text
 
     # Support both new 'concepts' format and old 'keywords' format
@@ -300,8 +321,9 @@ def score_all(papers: list[Paper]) -> list[Paper]:
         concepts = data["concepts"]
         max_possible = sum(c.get("weight", 0) * 2 for c in concepts.values())
 
-        # Pre-compile regex patterns for each keyword in each concept
+        # Pre-compile regex patterns for each keyword in each concept and highlight patterns
         compiled_concepts = []
+        kw_patterns = {}
         for c_name, c_data in concepts.items():
             w = c_data.get("weight", 0)
             compiled_kws = []
@@ -309,6 +331,9 @@ def score_all(papers: list[Paper]) -> list[Paper]:
                 nk = _norm(k)
                 pat = re.compile(rf"(?<![\w-]){re.escape(nk)}(?![\w-])")
                 compiled_kws.append((k, pat))
+                if k not in kw_patterns:
+                    esc = re.escape(k)
+                    kw_patterns[k] = re.compile(rf"(?i)(?<![\w-])({esc})(?![\w-])")
             compiled_concepts.append((c_name, w, compiled_kws))
 
         for p in papers:
@@ -344,20 +369,23 @@ def score_all(papers: list[Paper]) -> list[Paper]:
 
             if p.abstract and len(p.abstract) > 600:
                 p.abstract = p.abstract[:600] + "…"
-            p.title = _highlight(p.title, hits)
-            p.abstract = _highlight(p.abstract, hits)
+            p.title = _highlight(p.title, hits, kw_patterns)
+            p.abstract = _highlight(p.abstract, hits, kw_patterns)
 
     else:
         # Fallback to old format
         kws = data.get("keywords", data) if isinstance(data, dict) else {}
         if not kws: return papers
         max_possible = sum(w * 2 for w in kws.values())
-        # Pre-compile patterns for old format too
         compiled_kws = []
+        kw_patterns = {}
         for k, w in sorted(kws.items(), key=lambda x: len(_norm(x[0])), reverse=True):
             nk = _norm(k)
             pat = re.compile(rf"(?<![\w-]){re.escape(nk)}(?![\w-])")
             compiled_kws.append((k, w, pat))
+            if k not in kw_patterns:
+                esc = re.escape(k)
+                kw_patterns[k] = re.compile(rf"(?i)(?<![\w-])({esc})(?![\w-])")
         for p in papers:
             tt, ta = _norm(p.title or ""), _norm(p.abstract or "")
             raw = 0
@@ -380,8 +408,8 @@ def score_all(papers: list[Paper]) -> list[Paper]:
 
             if p.abstract and len(p.abstract) > 600:
                 p.abstract = p.abstract[:600] + "…"
-            p.title = _highlight(p.title, hits)
-            p.abstract = _highlight(p.abstract, hits)
+            p.title = _highlight(p.title, hits, kw_patterns)
+            p.abstract = _highlight(p.abstract, hits, kw_patterns)
 
     high = sum(1 for p in papers if p.score >= 5.0)
     log.info("Scored %d papers (%d with score >= 5.0)", len(papers), high)
@@ -576,7 +604,6 @@ def check_industry_affiliations(papers: list[Paper], api_key: Optional[str] = No
     log.info("Checking OpenAlex affiliations for %d papers...", len(dois))
 
     chunk_size = 50
-    headers = {"User-Agent": "BatteryPaperAgent/1.0 (mailto:agent@battery.report)"}
     target_re = re.compile(r'\b(samsung|lg|sk|sait)\b', re.IGNORECASE)
 
     for i in range(0, len(dois), chunk_size):
@@ -591,7 +618,7 @@ def check_industry_affiliations(papers: list[Paper], api_key: Optional[str] = No
             params["api_key"] = api_key
 
         try:
-            r = requests.get(url, params=params, headers=headers, timeout=15)
+            r = SESSION.get(url, params=params, timeout=15)
             if r.status_code in (401, 403):
                 log.warning("OpenAlex API authentication error: %s", r.text[:200])
                 break
