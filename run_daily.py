@@ -699,14 +699,14 @@ def apply_custom_rules(papers: list[Paper]) -> list[Paper]:
         r'|lib|libs|sib|sibs|pib|pibs|kib|kibs|zib|zibs)\b'
     )
     _relevant_re = re.compile(
-        r'\b(batteries|battery|batter|anode|cathode|electrolyte|electrolytes|energy storage'
-        r'|li.s|lithium[- ]sulfur|argyrodite|llzo|lpscl|ionic conductiv)\b'
+        r'\b(batteries|battery|anode|cathode|electrolyte|electrolytes|energy storage'
+        r'|li[- ]s|lithium[- ]sulfur|argyrodite|llzo|lpscl|ionic conductiv)\b'
     )
 
     filtered = []
     dropped = 0
     for p in papers:
-        text = (p.title + " " + (p.abstract or "")).lower()
+        text = _norm((p.title or "") + " " + (p.abstract or ""))
 
         # If paper is from target industry affiliations (Samsung/LG/SK), keep only if relevant to battery research
         if getattr(p, "target_affiliation", False):
